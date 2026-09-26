@@ -118,9 +118,12 @@ export function irisError(data: any): string | undefined {
 
   if (Array.isArray(errors) && errors.length)
     return errors
-      .map((e) =>
-        typeof e === 'string' ? e : (e.message ?? e.error ?? e.text ?? JSON.stringify(e)),
-      )
+      .map((e) => {
+        const value = typeof e === 'string' ? e : (e?.message ?? e?.error ?? e?.text ?? e);
+        const message =
+          typeof value === 'string' ? value : value == null ? '' : JSON.stringify(value);
+        return message?.trim() ? message : 'IRIS reported an error without a diagnostic message.';
+      })
       .join('; ');
 
   if (data?.error) return typeof data.error === 'string' ? data.error : JSON.stringify(data.error);

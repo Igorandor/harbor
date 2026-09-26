@@ -28,3 +28,25 @@ This also protects Relay ownership: missing names could otherwise be converted t
 - Initial failing fixtures, final test/audit output and integration logs are retained under research/security-recheck-* in the parent workspace.
 
 The review also revisited CSRF/origin checks, session rotation and limits, upstream allowlisting, identity preservation, and Relay report authorization. This bounded review is not a complete penetration test, container OS scan or IRIS product certification. The previously rejected trickling-stream probe was not retried. No external service was published or targeted.
+
+## Third requested review: error handling and operation consistency
+
+A further user-requested review reproduced and fixed two reliability defects on September 26. Neither reproduction establishes a new authentication bypass or compromise of a live IRIS instance.
+
+### Nonempty error lists could be treated as success
+
+The shared gateway joined native error messages and then tested the resulting string for truthiness. An HTTP 200 response with errors: [""] or errors: [{ message: "" }] therefore appeared successful. A null error entry could instead cause a JavaScript exception. This matters for writes because an error indication must not be presented as successful completion.
+
+Every entry in a nonempty errors/Errors list now produces a nonempty diagnostic, using a generic message when the native entry provides none. Null and primitive entries are handled without dereferencing them. Empty lists remain successful, informative messages remain readable, and writes are never automatically replayed. Two regression cases per project cover these variants. The false-success fixture failed before the fix and passes afterward.
+
+### Relay reconciliation bypassed the target operation lock
+
+Relay serialized normal steps and restoration by canonical target, but reconciliation of an uncertain write used only the per-run lock. It could therefore observe and record target state concurrently with an operation from another run, including one owned by another account.
+
+Reconciliation now holds the existing target lock across its state read and journal update. Two deterministic regression cases pause a fixture read and prove mutual exclusion in both directions, using different owners and equivalent application names (/sample and /SAMPLE//). A conflicting request receives 409 before reaching IRIS or changing the uncertain run. After the lock is released, work continues and reconciliation does not repeat the native write.
+
+This remains a single-process coordination guarantee for Relay operations. It does not lock out changes made directly in IRIS or by another portal/process, and reconciliation still records observed state without claiming which actor caused it.
+
+### Final verification for this review
+
+This project passes 73/73 tests, TypeScript and production builds. Across all three projects, 251 tests pass. Rebuilt local portals passed installed-gateway, native smoke and extended workflow suites; Atlas access analysis and Relay runbooks also passed. Dependency audits reported zero known vulnerabilities. Test, build, audit and integration evidence is retained in the parent workspace under research/review3-*. Earlier scope limitations continue to apply.

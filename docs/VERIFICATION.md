@@ -66,3 +66,7 @@ The security follow-up was deployed to the local Compose portal. Installed-gatew
 ## Second security recheck
 
 The subsequent recheck fixed duplicate unmasked fallback consoles and rejected malformed native login identities/API versions before session creation. All 71 tests, TypeScript checks and production builds pass. The rebuilt local portals passed installation, native smoke and extended workflow suites, plus Atlas access analysis and Relay runbooks. Dependency audits report zero known vulnerabilities. See [SECURITY_RECHECK.md](SECURITY_RECHECK.md) for reproduction conditions and limitations.
+
+## Third requested review
+
+The next review corrected false success for nonempty native error lists without messages and added target locking to Relay reconciliation. All 73 tests, TypeScript and production builds pass. Rebuilt local portals again passed installation, native smoke and extended workflows, plus Atlas access analysis and Relay runbooks. Dependency audits reported zero known vulnerabilities. Deterministic failing-before/passing-after fixtures and the scope of the locking guarantee are documented in [SECURITY_RECHECK.md](SECURITY_RECHECK.md).
