@@ -55,6 +55,15 @@ const editable = new Set([
 export function validateOperation(op: Operation) {
   if (!boundedJson(op.body, 32, 20000))
     throw new ApiError(400, 'The request body is too deeply nested or complex.');
+  const submittedSecrets = credentialValues(op.body);
+  if (
+    submittedSecrets.length > 128 ||
+    submittedSecrets.reduce((n, value) => n + value.length, 0) > 32768
+  )
+    throw new ApiError(
+      400,
+      'Credential fields exceed the limit of 128 values or 32,768 characters.',
+    );
   const method = op.method.toLowerCase();
 
   if (op.path === '/extension/telemetry' || op.path === '/extension/logs') {
@@ -255,7 +264,9 @@ export class IrisClient {
     // Preserve structured identities and configuration values: a password may equal a
     // username or resource name. Free-text diagnostic filtering must never change ownership.
     data = redact(data);
-    const problem = irisError(redact(data, diagnosticSecrets));
+    const problem = irisError(
+      redact({ status: data?.status, error: data?.error }, diagnosticSecrets),
+    );
 
     if (!response.ok || problem)
       throw new ApiError(
@@ -275,6 +286,17 @@ export class IrisClient {
     ) {
       data.result.OAuth2ServerDefinition = data.result.ServerDefinition;
       delete data.result.ServerDefinition;
+    }
+
+    // Async jobs carry diagnostic text inside result, rather than the top-level console.
+    // Mask just those fields: result identities must retain their exact native values.
+    if (op.path === '/v2/async-result' || op.path === '/v2/async-results') {
+      const payload = data.result ?? data;
+      for (const job of Array.isArray(payload) ? payload : [payload]) {
+        if (!job || typeof job !== 'object') continue;
+        for (const key of ['Console', 'FailureReason'])
+          if (Object.hasOwn(job, key)) job[key] = redact(job[key], diagnosticSecrets);
+      }
     }
 
     const location = response.headers.get('location');

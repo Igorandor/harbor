@@ -17,18 +17,22 @@ export function credentialValues(value: unknown, sensitive = false): string[] {
 
 /** Mask credential-bearing fields before any response, review, or export. */
 export function redact(value: any, secrets: readonly string[] = []): any {
-  if (Array.isArray(value)) return value.map((item) => redact(item, secrets));
-  if (value && typeof value === 'object')
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [
-        key,
-        sensitiveField(key) ? '[redacted]' : redact(item, secrets),
-      ]),
-    );
-  if (typeof value === 'string')
-    return secrets.reduce(
-      (text, secret) => (secret ? text.split(secret).join('[redacted]') : text),
-      value,
-    );
-  return value;
+  const literals = [...new Set(secrets.filter(Boolean))]
+    .sort((a, b) => b.length - a.length)
+    .map((secret) => secret.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const pattern = literals.length ? new RegExp(literals.join('|'), 'g') : undefined;
+  // One pass over each original string. Never mask the replacement marker again:
+  // attacker-chosen short secrets could otherwise amplify it on every iteration.
+  function visit(item: any): any {
+    if (Array.isArray(item)) return item.map(visit);
+    if (item && typeof item === 'object')
+      return Object.fromEntries(
+        Object.entries(item).map(([key, child]) => [
+          key,
+          sensitiveField(key) ? '[redacted]' : visit(child),
+        ]),
+      );
+    return typeof item === 'string' && pattern ? item.replace(pattern, () => '[redacted]') : item;
+  }
+  return visit(value);
 }

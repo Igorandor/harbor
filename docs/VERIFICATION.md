@@ -6,7 +6,7 @@ Verified September 26, 2026 against a real, disposable InterSystems IRIS Communi
 
 | Check                                                        | Result                                                                                                                                                               |
 | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run check`                                              | TypeScript and production bundles pass; 62 security and API-contract tests pass.                                                                                     |
+| `npm run check`                                              | TypeScript and production bundles pass; 68 security and API-contract tests pass.                                                                                     |
 | `npm audit`                                                  | No reported vulnerabilities in the installed dependency tree at verification time.                                                                                   |
 | Fresh `docker compose up -d --build` with a new named volume | Both services become healthy; login and real gateway requests pass.                                                                                                  |
 | `npm run test:install`                                       | Production static files, CSP, session, CSRF, info, applications, tasks, telemetry, logs and logout pass.                                                             |
@@ -56,3 +56,9 @@ Browser checks covered the structured REST response, nested disclosures and the 
 The responsive checks used a 390 × 844 viewport. They found an absolutely positioned screen-reader table label escaping its horizontal scroll area; the scroll container now provides its positioning context. Wide tables keep their own horizontal scroll. The inspected browser error/warning logs were empty. These checks are interactive evidence, not an accessibility certification.
 
 Native resource creation rejected missing and empty PublicPermission values in this review, and the form retained the error and draft for correction. A populated disposable resource succeeded. This is not evidence that every native schema constraint is validated before submission. Presentation choices and limits are described in [DATA_VIEWS.md](DATA_VIEWS.md).
+
+## Subsequent security follow-up
+
+Six additional regressions cover asynchronous diagnostic masking, identity preservation, retained history bounds, escaped/multibyte output, single-pass literal replacement and rejection of excessive credential fields before a write. All 68 tests and production builds pass. See [SECURITY_REVIEW.md](SECURITY_REVIEW.md) for reproductions, scope and limitations.
+
+The security follow-up was deployed to the local Compose portal. Installed-gateway, native smoke and extended workflows passed after rebuilding; Atlas live access analysis and Relay runbooks also passed. No container OS vulnerability scan or IRIS product certification is implied.

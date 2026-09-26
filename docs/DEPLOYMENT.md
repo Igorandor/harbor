@@ -33,3 +33,7 @@ Log reads use a fixed allowlist (`messages.log`, `alerts.log`), a maximum 1 MB t
 Back up the IRIS data volume with an IRIS-supported backup procedure. Replacing the portal container does not change IRIS records. Replacing the IRIS image may require a supported IRIS upgrade path; pin and test upgrades. `docker compose down` keeps the volume. Removing the volume destroys the demonstration instance's data.
 
 `GET /api/health` reports gateway process availability, not successful IRIS authentication. The UI's refresh timestamps and individual API errors describe upstream availability. Use an authenticated external health probe if you need end-to-end monitoring.
+
+## Diagnostic and history bounds
+
+Known authentication echoes are masked in normal and asynchronous diagnostics. Masking is a single literal pass; canonical identifiers remain unchanged. Credential-bearing submissions allow at most 128 values and 32,768 combined characters. Requests exceeding those limits are rejected before forwarding. Session history keeps a console preview of at most 100 lines plus a truncation notice and 16 KiB of serialized UTF-8 console data per entry; the directly requested native response retains its separate response limit. See [the focused security review](SECURITY_REVIEW.md).

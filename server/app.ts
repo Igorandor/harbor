@@ -1,3 +1,4 @@
+import { consolePreview } from './activity.js';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -158,7 +159,7 @@ export function createApp(options: AppOptions) {
           target: op.query?.name ?? op.query?.id ?? op.query?.alias ?? '',
           status: result.status,
           elapsed: now() - start,
-          console: result.console,
+          console: consolePreview(result.console),
         });
         session.activity.splice(100);
       }
