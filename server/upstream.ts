@@ -300,13 +300,16 @@ export class IrisClient {
     }
 
     const location = response.headers.get('location');
+    const payload = data.result ?? data;
+    const responseData =
+      op.path === '/extension/logs' ? redact(payload, diagnosticSecrets) : payload;
+    const console = redact(data.console ?? [], diagnosticSecrets);
+    // Without result, the whole envelope is returned as data. Mask its console too.
+    if (payload === data && Object.hasOwn(data, 'console')) responseData.console = console;
 
     return {
-      data:
-        op.path === '/extension/logs'
-          ? redact(data.result ?? data, diagnosticSecrets)
-          : (data.result ?? data),
-      console: redact(data.console ?? [], diagnosticSecrets),
+      data: responseData,
+      console,
       status: response.status,
 
       asyncId:

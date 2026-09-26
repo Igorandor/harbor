@@ -62,3 +62,7 @@ Native resource creation rejected missing and empty PublicPermission values in t
 Six additional regressions cover asynchronous diagnostic masking, identity preservation, retained history bounds, escaped/multibyte output, single-pass literal replacement and rejection of excessive credential fields before a write. All 68 tests and production builds pass. See [SECURITY_REVIEW.md](SECURITY_REVIEW.md) for reproductions, scope and limitations.
 
 The security follow-up was deployed to the local Compose portal. Installed-gateway, native smoke and extended workflows passed after rebuilding; Atlas live access analysis and Relay runbooks also passed. No container OS vulnerability scan or IRIS product certification is implied.
+
+## Second security recheck
+
+The subsequent recheck fixed duplicate unmasked fallback consoles and rejected malformed native login identities/API versions before session creation. All 71 tests, TypeScript checks and production builds pass. The rebuilt local portals passed installation, native smoke and extended workflow suites, plus Atlas access analysis and Relay runbooks. Dependency audits report zero known vulnerabilities. See [SECURITY_RECHECK.md](SECURITY_RECHECK.md) for reproduction conditions and limitations.

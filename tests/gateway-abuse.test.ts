@@ -134,7 +134,7 @@ test('an unconfigured origin does not trust attacker-controlled Host headers', a
   const client = {
     async request() {
       calls++;
-      return { data: { apiVersion: 2 }, status: 200 };
+      return { data: { apiVersion: 2, username: 'test' }, status: 200 };
     },
   } as unknown as IrisClient;
   const app = createApp({ irisUrl: 'http://iris', client });

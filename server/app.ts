@@ -83,6 +83,21 @@ export function createApp(options: AppOptions) {
     attempts.set(key, attempt);
     const auth = 'Basic ' + Buffer.from(`${parsed.username}:${parsed.password}`).toString('base64');
     const result = await client.request(auth, { path: '/info', method: 'GET' });
+    const identity = z
+      .object({
+        apiVersion: z
+          .union([z.number().int().nonnegative(), z.string().regex(/^\d+$/)])
+          .transform(Number)
+          .refine(Number.isSafeInteger),
+        username: z
+          .string()
+          .min(1)
+          .max(128)
+          .refine((value) => value.trim().length > 0),
+      })
+      .safeParse(result.data);
+    if (!identity.success)
+      throw new ApiError(502, 'IRIS returned an invalid API version or account identity.');
     if (Number(result.data.apiVersion) < 2)
       throw new ApiError(
         409,
