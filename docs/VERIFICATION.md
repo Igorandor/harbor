@@ -6,7 +6,7 @@ Verified September 26, 2026 against a real, disposable InterSystems IRIS Communi
 
 | Check                                                        | Result                                                                                                                                                               |
 | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run check`                                              | TypeScript and production bundles pass; 75 security and API-contract tests pass.                                                                                     |
+| `npm run check`                                              | TypeScript and production bundles pass; 76 security and API-contract tests pass.                                                                                     |
 | `npm audit`                                                  | No reported vulnerabilities in the installed dependency tree at verification time.                                                                                   |
 | Fresh `docker compose up -d --build` with a new named volume | Both services become healthy; login and real gateway requests pass.                                                                                                  |
 | `npm run test:install`                                       | Production static files, CSP, session, CSRF, info, applications, tasks, telemetry, logs and logout pass.                                                             |
@@ -74,3 +74,7 @@ The next review corrected false success for nonempty native error lists without 
 ## Expanded review
 
 The final build passes 75 tests. The expanded review added malformed-capture and graph cases, upstream protocol checks, native task-edit preservation checks, and browser checks of request sequencing and sign-out failures. All primary native suites, Atlas access analysis, Relay runbooks, X.509 and demo process-control suites passed; final installed-gateway checks passed after the last rebuild. See [DEEP_REVIEW.md](DEEP_REVIEW.md) for fixes, evidence and the stopping criterion.
+
+## Contest and authorization review, September 26
+
+The current build passes 76 tests. The rebuilt gateway passed the new `npm run test:authorization` suite and `test:install` against the bundled IRIS Community instance. The new suite verifies restricted access, refusal of security-privilege escalation, database-read denial and revocation in an existing session. See [review details](CONTEST_SECURITY_REVIEW.md). Earlier specialized live-suite results above remain historical evidence; they were not all repeated in this round.

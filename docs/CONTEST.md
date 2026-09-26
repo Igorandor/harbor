@@ -25,8 +25,12 @@ No claim is made for online hosting, published IPM packages, community ideas, ar
 2. Keep `.env`, test credentials for non-demo systems and generated runtime data out of the repository.
 3. Add the real author's Developer Community profile to the Open Exchange submission. If submitted as a team, add all team members' profile links to the README.
 4. Use the description below and the README walkthrough for the application listing.
-5. Review the contest registration terms and submit through Open Exchange. The announcement states a submission deadline of **September 27, 2026, 23:59 EST**; verify the current deadline in the organizer's interface.
+5. Review the [general terms](https://openexchange.intersystems.com/markdown?url=/assets/doc/contest-terms.md), publish the application on Open Exchange, then apply to the contest using the [submission guide](https://docs.openexchange.intersystems.com/contest/apply/). The announcement states a submission deadline of **September 27, 2026, 23:59 EST**; verify the current deadline in the organizer's interface.
 
 ### Suggested Open Exchange description
 
 Harbor is a focused administration workspace for InterSystems IRIS. It brings web applications, permissions, wallet secrets, X.509/TLS/OAuth configuration, scheduled tasks, host resources and operational logs into a consistent React interface. A same-origin Node gateway preserves the operator's IRIS privileges; reviewable changes, typed confirmations and conflict checks support everyday administration. The included Docker stack and protected Embedded Python extension provide a reproducible local installation with real telemetry and log data.
+
+## Current review status
+
+See [the latest authorization and readiness review](CONTEST_SECURITY_REVIEW.md). Public repository publication, the Open Exchange listing, participant eligibility and organizer acceptance remain unconfirmed. The sibling projects currently reuse the Harbor administration foundation; this must be disclosed and is not a guarantee of separate acceptance. A requirement to remove that reused implementation is under review with the project owner.

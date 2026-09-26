@@ -2,6 +2,27 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { IrisClient } from '../server/upstream';
 
+test('empty, HTML and primitive access denials retain 401/403 without leaking their body', async () => {
+  for (const status of [401, 403]) {
+    for (const body of ['', '<html>private-diagnostic</html>', 'null', '"private-diagnostic"']) {
+      let calls = 0;
+      const client = new IrisClient('http://iris', async () => {
+        calls++;
+        return new Response(body, { status });
+      });
+      await assert.rejects(
+        () => client.request('fixture', { path: '/extension/telemetry', method: 'GET' }),
+        (error: any) => {
+          assert.equal(error.status, status);
+          assert.doesNotMatch(error.message, /private-diagnostic|non-JSON/);
+          return true;
+        },
+      );
+      assert.equal(calls, 1);
+    }
+  }
+});
+
 test('primitive upstream documents are rejected as protocol failures', async () => {
   for (const data of [null, false, 42, 'not-an-envelope']) {
     const client = new IrisClient('http://iris', async () => Response.json(data));

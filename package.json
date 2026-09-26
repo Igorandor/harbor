@@ -17,7 +17,8 @@
     "test:workflows": "tsx scripts/live-workflows.ts",
     "test:install": "tsx scripts/check-install.ts",
     "test:x509": "tsx scripts/live-x509.ts",
-    "test:process": "tsx scripts/live-process.ts"
+    "test:process": "tsx scripts/live-process.ts",
+    "test:authorization": "tsx scripts/live-authorization.ts"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",

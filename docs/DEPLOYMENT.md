@@ -10,7 +10,7 @@ The portal is an administrative client. It forwards the signed-in operator's ide
 - Requests are limited to paths and parameters in the pinned API contract. Only an explicit list of administrative writes is allowed.
 - Secret retrieval endpoints are blocked. Credential-bearing response fields are masked recursively. The wallet only exposes names and types.
 - Request bodies are limited to 256 KB; list reads default to 250 rows and cap `maxRows` at 1,000. Upstream requests time out after 20 seconds; writes are never automatically retried.
-- In-memory login throttling limits failed attempts to ten per minute per address. A restart clears sessions and throttling state.
+- In-memory login throttling limits all sign-in attempts (successful and failed) to ten per minute per address. A restart clears sessions and throttling state.
 - Portal activity is a bounded, session-local convenience history, not an immutable or durable security audit. Use the native IRIS audit subsystem for authoritative retention.
 - Operational log text can contain application data. Pattern masking is best effort; do not assume arbitrary log messages are anonymized.
 
@@ -24,7 +24,7 @@ Credentials remain in memory because HTTP Basic authentication is used against I
 
 ## Extension
 
-`Harbor.Rest` requires `%Admin_Operate:USE` and password authentication. It does not grant application roles. Embedded Python reads `/proc` on Linux and disk usage for the IRIS manager directory. In a container, host CPU and memory numbers may describe the container host, not cgroup quotas; the UI labels this scope.
+`Harbor.Rest` requires `%Admin_Operate:USE`, `%DB_IRISSYS:R` for its bundled `%SYS` namespace, and password authentication. These permissions are assigned by an administrator, not by the installer. It does not grant application roles. Embedded Python reads `/proc` on Linux and disk usage for the IRIS manager directory. In a container, host CPU and memory numbers may describe the container host, not cgroup quotas; the UI labels this scope.
 
 Log reads use a fixed allowlist (`messages.log`, `alerts.log`), a maximum 1 MB tail and a maximum 500 lines. No caller-supplied filesystem paths, shell commands or arbitrary SQL are accepted. Missing log files return an explicit empty-source notice. Non-Linux environments retain native API functionality and disk telemetry; Linux-specific metrics are described as unavailable.
 

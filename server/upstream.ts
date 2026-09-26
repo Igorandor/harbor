@@ -233,23 +233,31 @@ export class IrisClient {
       }
     }
 
+    // Web Gateway may reject access before the REST handler and send an empty
+    // or HTML body. Preserve authentication/authorization status without
+    // exposing that untrusted body as a diagnostic.
+    const denial =
+      response.status === 401
+        ? 'IRIS rejected these credentials.'
+        : response.status === 403
+          ? 'Your IRIS account does not have the required privilege.'
+          : undefined;
     let data: any;
 
     try {
       data = JSON.parse(text);
     } catch {
       throw new ApiError(
-        response.status === 401 ? 401 : 502,
-        response.status === 401
-          ? 'IRIS rejected these credentials.'
-          : 'IRIS returned a non-JSON response. Check the API version and web application configuration.',
+        denial ? response.status : 502,
+        denial ??
+          'IRIS returned a non-JSON response. Check the API version and web application configuration.',
       );
     }
 
     if (data === null || typeof data !== 'object')
       throw new ApiError(
-        502,
-        'IRIS returned an invalid response document. Refresh before retrying a write.',
+        denial ? response.status : 502,
+        denial ?? 'IRIS returned an invalid response document. Refresh before retrying a write.',
       );
     if (!boundedJson(data, 64, 200000))
       throw new ApiError(502, 'IRIS returned data that is too deeply nested or complex.');
