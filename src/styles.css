@@ -93,9 +93,9 @@ h3 {
   font-family: 'Manrope Variable', sans-serif;
 }
 h1 {
-  font-size: 29px;
-  letter-spacing: -1.2px;
-  font-weight: 750;
+  font-size: 24px;
+  letter-spacing: -0.5px;
+  font-weight: 650;
   line-height: 1.3;
 }
 h2 {
@@ -292,13 +292,6 @@ input[type='checkbox'] {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.nav-label {
-  font-size: 9px;
-  letter-spacing: 1.6px;
-  color: #94b0a3;
-  padding: 0 13px;
-  margin-bottom: 10px;
-}
 .sidebar nav {
   display: flex;
   flex-direction: column;
@@ -337,15 +330,6 @@ input[type='checkbox'] {
 .sidebar-bottom {
   margin-top: auto;
   padding-top: 35px;
-}
-.sidebar-note {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #a9c3b5;
-  font-size: 10px;
-  line-height: 1.6;
-  padding: 13px 8px 24px;
 }
 .profile {
   background: transparent;
@@ -469,22 +453,22 @@ input[type='checkbox'] {
   background: #fcf3de;
 }
 main {
-  padding: 33px 36px 42px;
+  padding: 26px 32px 36px;
   width: 100%;
   max-width: 1700px;
   margin: 0 auto;
-  min-height: calc(100vh - 112px);
+  min-height: calc(100vh - 70px);
 }
 .page-header {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 27px;
+  margin-bottom: 22px;
 }
 .page-header p {
-  margin-top: 9px;
-  font-size: 12px;
+  margin-top: 7px;
+  font-size: 13px;
 }
 .eyebrow {
   text-transform: uppercase;
@@ -673,12 +657,6 @@ main {
   align-self: flex-start;
   width: 15px;
   color: var(--muted);
-}
-.workspace-number {
-  font-size: 10px;
-  align-self: flex-start;
-  color: #829788;
-  margin-top: 2px;
 }
 .workspace-card strong {
   font-size: 11px;
@@ -912,15 +890,6 @@ td .icon-button {
 }
 .padded {
   padding: 20px;
-}
-.app-footer {
-  border-top: 1px solid var(--line);
-  margin: 0 36px;
-  padding: 15px 0;
-  display: flex;
-  justify-content: space-between;
-  font-size: 9px;
-  color: var(--muted);
 }
 .modal {
   border: 1px solid var(--line);
@@ -1282,101 +1251,34 @@ td .icon-button {
   margin-left: auto;
 }
 .login-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
   min-height: 100vh;
-}
-.login-story {
-  background: var(--sidebar);
-  padding: 50px 10%;
-  color: #edf5e7;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-.login-story .brand {
-  margin: 0;
-}
-.login-story .eyebrow {
-  color: #bedab6;
-  font-size: 10px;
-}
-.login-story h1 {
-  font-size: 44px;
-  line-height: 1.22;
-  letter-spacing: -1.8px;
-  margin: 22px 0;
-}
-.login-story p {
-  color: #a6c3b0;
-  font-size: 14px;
-  max-width: 350px;
-}
-.login-story > small {
-  color: #acc4b5;
-  font-size: 10px;
-}
-.login-topology {
-  margin: 48px 0 20px;
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  max-width: 390px;
-  font-size: 11px;
-}
-.login-topology > div:first-child {
-  border: 1px solid #507462;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 19px 24px;
-  border-radius: 7px;
-  background: #20483f;
-}
-.login-topology > span {
-  height: 36px;
-  border-left: 1px solid #507462;
-}
-.topology-nodes {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
-}
-.topology-nodes > span {
-  border: 1px solid #507462;
-  border-radius: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 13px 8px;
-  font-size: 10px;
-  flex: 1;
-}
-.login-form {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 45px;
-}
-.login-card {
-  width: 340px;
-}
-.login-key {
   display: grid;
   place-items: center;
-  width: 49px;
-  height: 49px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  background: var(--panel);
-  color: var(--accent);
-  margin-bottom: 24px;
+  padding: 32px 20px;
 }
-.login-card h2 {
-  font-size: 25px;
-  margin-bottom: 10px;
+.login-form {
+  width: min(100%, 420px);
+}
+.login-card {
+  width: 100%;
+  padding: 32px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.login-card .brand {
+  color: var(--text);
+  margin: 0 0 28px;
+  font-size: 23px;
+}
+.login-card .brand-subtitle {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0;
+}
+.login-card h1 {
+  font-size: 23px;
+  margin-bottom: 8px;
 }
 .target-label {
   display: flex;
@@ -1453,13 +1355,10 @@ td .icon-button {
   background: #4c3c22;
   color: #ead3a2;
 }
-[data-theme='dark'] .login-story .eyebrow {
-  color: #bedab6;
-}
 
 @media (min-width: 1550px) {
   main {
-    padding: 40px 46px;
+    padding: 30px 40px;
   }
   .page-header {
     margin-bottom: 32px;
@@ -1583,7 +1482,7 @@ td .icon-button {
     flex-wrap: wrap;
   }
   h1 {
-    font-size: 25px;
+    font-size: 23px;
   }
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1649,30 +1548,6 @@ td .icon-button {
     font-size: 11px;
     padding: 7px;
   }
-  .login-layout {
-    display: block;
-  }
-  .login-story {
-    padding: 24px;
-  }
-  .login-story > div:not(.brand),
-  .login-story > small {
-    display: none;
-  }
-  .login-story .brand {
-    font-size: 23px;
-  }
-  .login-form {
-    padding: 50px 25px;
-  }
-  .login-card {
-    max-width: 360px;
-    width: 100%;
-  }
-  .app-footer {
-    margin: 0 18px;
-    gap: 15px;
-  }
   .collection-picker {
     flex-wrap: wrap;
   }
@@ -1713,15 +1588,9 @@ td .icon-button {
   .refresh > span {
     font-size: 9px;
   }
-  .app-footer > span:last-child {
-    display: none;
-  }
   .modal .diff {
     display: block;
     overflow: auto;
-  }
-  .topology-nodes {
-    flex-wrap: wrap;
   }
 }
 

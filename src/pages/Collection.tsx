@@ -67,7 +67,7 @@ export function Collection({
 
   return (
     <>
-      <PageHeader eyebrow="Workspace" title={entity.title} description={entity.description}>
+      <PageHeader title={entity.title} description={entity.description}>
         {!entity.readonly && (
           <button
             className="primary"

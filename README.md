@@ -1,7 +1,5 @@
 # Harbor for InterSystems IRIS
 
-**A practical administration workspace for the everyday work of running IRIS.**
-
 Harbor brings applications, permissions, secrets, tasks, host resources and logs into one consistent interface. It talks to the real InterSystems SysAdmin v2 APIs. It does not replace IRIS authorization or simulate administrative results.
 
 Built for the [InterSystems Programming Contest: Build Your Own Management Portal](https://community.intersystems.com/post/intersystems-programming-contest-build-your-own-management-portal).

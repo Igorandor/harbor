@@ -107,9 +107,8 @@ export function Logs() {
   return (
     <>
       <PageHeader
-        eyebrow="Observability"
         title="Logs & activity"
-        description="Read the original system messages and trace administrative outcomes."
+        description="System messages, security audit and task history."
       >
         <button
           disabled={!data}

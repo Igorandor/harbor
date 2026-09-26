@@ -30,11 +30,7 @@ export function Explorer() {
   }
   return (
     <>
-      <PageHeader
-        eyebrow="Developer tools"
-        title="REST explorer"
-        description="Explore the official SysAdmin API using your current IRIS permissions."
-      />
+      <PageHeader title="REST explorer" description="Run read requests against the SysAdmin API." />
       <div className="explorer">
         <aside className="panel endpoint-list">
           <div className="search-field">

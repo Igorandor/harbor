@@ -15,9 +15,8 @@ export function Overview({ navigate, info }: { navigate: (page: string) => void;
   return (
     <>
       <PageHeader
-        eyebrow="Instance overview"
-        title="A clear view of your IRIS."
-        description="System health, upcoming work and the places you use every day."
+        title="Instance overview"
+        description="Health, activity and scheduled tasks on this instance."
       >
         <Refresh loading={state.loading} onClick={state.refresh} at={state.at} />
       </PageHeader>
@@ -128,7 +127,7 @@ export function Overview({ navigate, info }: { navigate: (page: string) => void;
             <section className="panel">
               <div className="section-heading">
                 <div>
-                  <h2>Coming up next</h2>
+                  <h2>Upcoming tasks</h2>
                   <p>Scheduled work on this instance</p>
                 </div>
                 <button className="text-link" onClick={() => navigate('tasks')}>
@@ -146,20 +145,18 @@ export function Overview({ navigate, info }: { navigate: (page: string) => void;
             </section>
           </div>
           <div className="section-heading standalone">
-            <h2>Your administration workspace</h2>
-            <span className="muted">Six areas. One connected instance.</span>
+            <h2>Administration</h2>
           </div>
           <div className="workspace-grid">
             {[
-              ['apps', '01', 'Web applications', 'Routes, authentication and REST APIs'],
-              ['permissions', '02', 'Access & permissions', 'Accounts, roles and resource grants'],
-              ['security', '03', 'Security & secrets', 'Wallet, certificates and OAuth'],
-              ['tasks', '04', 'Scheduled tasks', 'Schedules, history and on-demand work'],
-              ['system', '05', 'System resources', 'Processes, storage and devices'],
-              ['logs', '06', 'Logs & activity', 'Messages, audit and task outcomes'],
-            ].map(([page, n, title, desc]) => (
+              ['apps', 'Web applications', 'Routes, authentication and REST APIs'],
+              ['permissions', 'Access & permissions', 'Accounts, roles and resource grants'],
+              ['security', 'Security & secrets', 'Wallet, certificates and OAuth'],
+              ['tasks', 'Scheduled tasks', 'Schedules, history and on-demand work'],
+              ['system', 'System resources', 'Processes, storage and devices'],
+              ['logs', 'Logs & activity', 'Messages, audit and task outcomes'],
+            ].map(([page, title, desc]) => (
               <button className="workspace-card" key={page} onClick={() => navigate(page)}>
-                <span className="workspace-number">{n}</span>
                 <div>
                   <strong>{title}</strong>
                   <p>{desc}</p>

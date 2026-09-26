@@ -30,9 +30,8 @@ export function System({ info, notify }: { info: any; notify: (s: string) => voi
   return (
     <>
       <PageHeader
-        eyebrow="Infrastructure"
         title="System resources"
-        description="Host capacity and the processes doing the work."
+        description="CPU, memory, disk usage and running processes."
       >
         <Refresh loading={state.loading} onClick={state.refresh} at={state.at} />
       </PageHeader>
