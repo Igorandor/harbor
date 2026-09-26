@@ -148,3 +148,9 @@ There is no background AI service, analytics, paid API, cloud account requiremen
 Original application code is MIT licensed. The InterSystems API specification is attributed separately in [THIRD_PARTY.md](THIRD_PARTY.md). InterSystems IRIS is a separately licensed product and is not covered by this repository's MIT license.
 
 See [Reading and editing native API data](docs/DATA_VIEWS.md) for interactive response views, nested configuration controls and their limits.
+
+## Diagnostic bundles
+
+Open Diagnostic bundle, choose the evidence sources and enter an optional investigation note. Select Capture selected sources. Inspect each source separately: collected, unavailable, pending and too large have different meanings. A partial capture is not a healthy-system verdict. Export bundle includes timestamps, limits and the note. The eight choices are identity, health, host capacity, processes, tasks, task history, journal files and recent messages. At most two native reads run together; each report section is capped at 200 KB. No IRIS configuration is changed.
+
+See [the original project idea](IDEA.md). The written walkthrough above is part of the contest demonstration; no video or public hosted demo is implied.

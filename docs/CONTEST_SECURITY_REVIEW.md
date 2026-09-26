@@ -17,4 +17,12 @@ This review additionally inspected session/CSRF/origin checks, request allowlist
 
 ## Submission readiness
 
-The local English README, installation, written walkthrough, license and six functional areas are present. Public repository publication, Open Exchange listing and contest acceptance are still pending. Review [CONTEST.md](CONTEST.md) before submission. The shared foundation must be disclosed; separate acceptance of the sibling entries remains an organizer decision.
+The local English README, installation, written walkthrough, license and six functional areas are present. Public repository publication, Open Exchange listing and contest acceptance are still pending. Review [CONTEST.md](CONTEST.md) before submission. The implementation history and retained reference/test material are disclosed in PROVENANCE.md; separate acceptance remains an organizer decision.
+
+## Installation and independence follow-up
+
+The Docker installer previously used `halt 1`, which is invalid ObjectScript, and could continue to a misleading success message after compilation failure. Install and demo-configuration operations now check native status and terminate their own installation session with exit code 1. A same-command error trap also handles unexpected runtime failures in direct mode. Both failure paths were verified with bounded disposable-session probes; clean image builds succeeded for all three projects.
+
+Log tailing now reads a bounded window before discarding a partial leading line. The former skip using an unbounded readline could read beyond the intended window for a very long log line. Offline tests cover a long line without delimiters, a partial line followed by a valid record, masking and source rejection. This was not tested by flooding a live native log.
+
+Atlas and Relay replaced their copied application foundations with separate implementations while retaining their respective domain and regression contracts. Their rewritten gateways passed the native authorization, installation, CRUD, workflow and product-domain suites. See PROVENANCE.md and VERIFICATION.md for the current architecture, evidence and retained common material. Historical security reviews remain applicable as regression requirements, not as descriptions of the new UI source layout.

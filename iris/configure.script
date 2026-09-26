@@ -1,7 +1,7 @@
 zn "%SYS"
 write $zversion,!
 set properties("Password")="HarborLocal-2026!",properties("ChangePassword")=0
-write $SYSTEM.Status.GetErrorText(##class(Security.Users).Modify("SuperUser",.properties)),!
+set $ETRAP="write $ZERROR,! do $SYSTEM.Process.Terminate($JOB,1)" set sc=##class(Security.Users).Modify("SuperUser",.properties) if $SYSTEM.Status.IsError(sc) do $SYSTEM.Status.DisplayError(sc) do $SYSTEM.Process.Terminate($JOB,1)
 set app("Enabled")=1,app("AutheEnabled")=32
-write $SYSTEM.Status.GetErrorText(##class(Security.Applications).Modify("/api/admin",.app)),!
+set $ETRAP="write $ZERROR,! do $SYSTEM.Process.Terminate($JOB,1)" set sc=##class(Security.Applications).Modify("/api/admin",.app) if $SYSTEM.Status.IsError(sc) do $SYSTEM.Status.DisplayError(sc) do $SYSTEM.Process.Terminate($JOB,1)
 halt

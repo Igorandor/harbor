@@ -78,3 +78,11 @@ The final build passes 75 tests. The expanded review added malformed-capture and
 ## Contest and authorization review, September 26
 
 The current build passes 76 tests. The rebuilt gateway passed the new `npm run test:authorization` suite and `test:install` against the bundled IRIS Community instance. The new suite verifies restricted access, refusal of security-privilege escalation, database-read denial and revocation in an existing session. See [review details](CONTEST_SECURITY_REVIEW.md). Earlier specialized live-suite results above remain historical evidence; they were not all repeated in this round.
+
+## September 26 installation follow-up
+
+The final Harbor source passes 76 tests, the production build, npm audit (zero reports), current native authorization and installed-gateway checks. A clean native image build passed after fixing failed-status and runtime-error termination in installation/configuration scripts. Offline log-window tests cover a very long leading line without unbounded reads. These changes preserve Harbor's existing administration UI. Atlas and Relay now have independent application foundations; see their provenance documents.
+
+## Final independent release verification
+
+Current September 27 result: 80 tests and the production build pass. Installed gateway, authorization, native smoke and extended workflow suites passed against the current local instance. Diagnostic bundle captured all eight selected real sources in the browser; source failures, masking, limits, request validation and pending responses have automated regressions. Desktop and 390 × 844 views were inspected. The download event in the browser automation timed out, so that attempt does not certify writing the exported file to disk. Report payload construction is covered separately. Earlier counts below/above describe historical checkpoints.

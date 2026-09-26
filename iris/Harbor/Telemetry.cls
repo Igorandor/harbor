@@ -42,9 +42,11 @@ ClassMethod Logs(source As %String = "messages", limit As %Integer = 200) As %St
         size = handle.tell()
         start = max(0, size - 1048576)
         handle.seek(start)
+        window = handle.read(1048576)
         if start:
-            handle.readline()
-        lines = handle.read(1048576).decode("utf-8", "replace").splitlines()[-limit:]
+            boundary = window.find(b"\n")
+            window = window[boundary + 1:] if boundary >= 0 else b""
+        lines = window.decode("utf-8", "replace").splitlines()[-limit:]
     # Best-effort masking only: operational logs must still be treated as sensitive.
     lines = [re.sub(r"(?i)(password|token|secret)([=: ]+)(\S+)", r"\1\2[redacted]", line) for line in lines]
     return json.dumps({"source": source, "lines": lines, "bytes": size, "bounded": True})

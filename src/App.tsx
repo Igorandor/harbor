@@ -39,6 +39,7 @@ import { System } from './pages/System';
 import { Explorer } from './pages/Explorer';
 
 import { Logs } from './pages/Logs';
+import { Diagnostics } from './pages/Diagnostics';
 
 const navigation = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -49,6 +50,7 @@ const navigation = [
   { id: 'system', label: 'System resources', icon: Server },
   { id: 'logs', label: 'Logs & activity', icon: Activity },
   { id: 'explorer', label: 'REST explorer', icon: BookOpen },
+  { id: 'diagnostics', label: 'Diagnostic bundle', icon: Activity },
 ];
 
 export default function App() {
@@ -251,6 +253,9 @@ export default function App() {
           {page === 'system' && <System {...props} />}
           {page === 'logs' && <Logs />}
           {page === 'explorer' && <Explorer />}
+          <div hidden={page !== 'diagnostics'}>
+            <Diagnostics />
+          </div>
 
           {!navigation.some((n) => n.id === page) && <Overview navigate={navigate} info={info} />}
         </main>

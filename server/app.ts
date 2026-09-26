@@ -7,6 +7,8 @@ import { resolve } from 'node:path';
 import { z } from 'zod';
 import { ApiError, IrisClient, type Operation } from './upstream.js';
 import { parameters } from '../shared/schema.js';
+import { captureDiagnostics } from './diagnostics.js';
+import { diagnosticSources, type DiagnosticId } from '../shared/diagnostics.js';
 type Session = {
   auth: string;
   csrf: string;
@@ -14,6 +16,7 @@ type Session = {
   seen: number;
   info: any;
   activity: any[];
+  diagnosticBusy?: boolean;
 };
 export type AppOptions = {
   irisUrl: string;
@@ -36,12 +39,12 @@ export function createApp(options: AppOptions) {
       },
     }),
   );
-  app.use(express.json({ limit: '256kb' }));
-  app.use(cookieParser());
   app.use('/api', (_req, res, next) => {
     res.set('Cache-Control', 'no-store');
     next();
   });
+  app.use(express.json({ limit: '256kb' }));
+  app.use(cookieParser());
   app.use('/api', (req, _res, next) => {
     // Without an explicit public origin, only literal loopback hosts are accepted.
     // Reflecting any Host as the allowed Origin permits DNS-rebinding requests.
@@ -146,6 +149,33 @@ export function createApp(options: AppOptions) {
     res.json({ ok: true });
   });
   app.get('/api/activity', (_req, res) => res.json(res.locals.session.activity));
+  app.post('/api/diagnostics', async (req, res) => {
+    const input = z
+      .object({
+        sources: z
+          .array(z.string().refine((id) => diagnosticSources.some((source) => source.id === id)))
+          .min(1)
+          .max(8),
+      })
+      .strict()
+      .parse(req.body);
+    const session: Session = res.locals.session;
+    if (session.diagnosticBusy)
+      throw new ApiError(409, 'A diagnostic capture is already running in this session.');
+    session.diagnosticBusy = true;
+    try {
+      res.json(
+        await captureDiagnostics(
+          client,
+          session.auth,
+          new URL(options.irisUrl).host,
+          input.sources as DiagnosticId[],
+        ),
+      );
+    } finally {
+      session.diagnosticBusy = false;
+    }
+  });
   app.post('/api/iris', async (req, res) => {
     const op = z
       .object({
@@ -201,7 +231,15 @@ export function createApp(options: AppOptions) {
         details: err.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
       });
     res
-      .status(err instanceof ApiError ? err.status : err.type === 'entity.too.large' ? 413 : 500)
+      .status(
+        err instanceof ApiError
+          ? err.status
+          : err.type === 'entity.too.large'
+            ? 413
+            : err.type === 'entity.parse.failed'
+              ? 400
+              : 500,
+      )
       .json({
         error: err instanceof ApiError ? err.message : 'The request could not be processed.',
       });

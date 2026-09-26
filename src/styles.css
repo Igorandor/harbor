@@ -1620,3 +1620,53 @@ td .icon-button {
 .full {
   grid-column: 1/-1;
 }
+.diagnostics-setup,
+.diagnostic-report {
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.diagnostic-sources {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  margin: 20px 0;
+}
+.diagnostic-sources label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.diagnostic-sources input {
+  width: auto;
+}
+.diagnostic-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 20px;
+  margin-top: 20px;
+}
+.diagnostic-layout nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.diagnostic-layout nav button {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  text-align: left;
+  height: auto;
+  white-space: normal;
+}
+.diagnostic-layout nav button[aria-pressed='true'] {
+  border-color: var(--accent);
+}
+.diagnostic-evidence {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 750px) {
+  .diagnostic-layout {
+    grid-template-columns: 1fr;
+  }
+}
