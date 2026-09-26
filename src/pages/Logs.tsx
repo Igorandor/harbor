@@ -56,8 +56,11 @@ export function Logs() {
     [from, setFrom] = useState('');
 
   useEffect(() => {
-    let active = true;
+    let active = true,
+      inFlight = false;
     const load = async () => {
+      if (inFlight) return;
+      inFlight = true;
       setLoading(true);
       try {
         const s = sources[source];
@@ -83,6 +86,7 @@ export function Logs() {
       } catch (e) {
         if (active) setError((e as Error).message);
       } finally {
+        inFlight = false;
         if (active) setLoading(false);
       }
     };

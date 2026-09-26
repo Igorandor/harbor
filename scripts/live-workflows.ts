@@ -100,6 +100,17 @@ try {
   const id = String(tasks.data.find((t: any) => t.Name === name).Id);
   cleanup.push(() => call('/v2/task', 'DELETE', { id }));
 
+  // Editing sends only changed fields: preserve a concurrent update to another field.
+  const taskBefore = (await call('/v2/task', 'GET', { id })).data;
+  await call('/v2/task', 'PUT', { id }, { Description: 'Concurrent description update' });
+  await call('/v2/task', 'PUT', { id }, { SuspendOnError: !taskBefore.SuspendOnError });
+  const taskAfter = (await call('/v2/task', 'GET', { id })).data;
+  assert.equal(taskAfter.Description, 'Concurrent description update');
+  assert.equal(taskAfter.SuspendOnError, !taskBefore.SuspendOnError);
+  assert.equal(taskAfter.Name, taskBefore.Name);
+  assert.equal(taskAfter.TaskClass, taskBefore.TaskClass);
+  console.log('PASS task partial edit preserves unrelated configuration');
+
   await call('/v2/task/suspend', 'POST', { id }, { LeaveInQueue: true });
   assert.equal((await call('/v2/task/info', 'GET', { id })).data.Suspended, true);
 

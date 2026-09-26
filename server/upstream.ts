@@ -246,6 +246,11 @@ export class IrisClient {
       );
     }
 
+    if (data === null || typeof data !== 'object')
+      throw new ApiError(
+        502,
+        'IRIS returned an invalid response document. Refresh before retrying a write.',
+      );
     if (!boundedJson(data, 64, 200000))
       throw new ApiError(502, 'IRIS returned data that is too deeply nested or complex.');
 
@@ -303,6 +308,19 @@ export class IrisClient {
     }
 
     const location = response.headers.get('location');
+    let asyncId: string | undefined;
+    if (response.status === 202) {
+      try {
+        const id = location && new URL(location, this.baseUrl).searchParams.get('id');
+        if (!id?.trim() || id.length > 2000) throw new Error('Missing job identifier.');
+        asyncId = id;
+      } catch {
+        throw new ApiError(
+          502,
+          'IRIS accepted the operation but did not provide a usable background job identifier. Check native job state before retrying; a write may have completed.',
+        );
+      }
+    }
     const payload = data.result ?? data;
     const responseData =
       op.path === '/extension/logs' ? redact(payload, diagnosticSecrets) : payload;
@@ -315,10 +333,7 @@ export class IrisClient {
       console,
       status: response.status,
 
-      asyncId:
-        response.status === 202 && location
-          ? new URL(location, this.baseUrl).searchParams.get('id')
-          : undefined,
+      asyncId,
     };
   }
 }

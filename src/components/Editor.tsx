@@ -376,7 +376,7 @@ export function Editor({
       const body =
         entity.id === 'users' && !editing
           ? { User: payload, Password: password }
-          : entity.id === 'tasks'
+          : entity.id === 'tasks' && !editing
             ? form
             : entity.id === 'certificates' && !editing
               ? { ...payload, Alias: name.trim() }

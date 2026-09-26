@@ -49,6 +49,7 @@ export function Explorer() {
               .map((p) => (
                 <button
                   key={p.path}
+                  disabled={loading}
                   className={path === p.path ? 'selected' : ''}
                   onClick={() => {
                     setPath(p.path);
@@ -85,11 +86,16 @@ export function Explorer() {
                   <input
                     id={'query-' + p.name}
                     required={p.required}
+                    disabled={loading}
                     value={query[p.name] ?? ''}
                     placeholder={
                       p.schema?.type === 'integer' ? 'Number' : p.example ? String(p.example) : ''
                     }
-                    onChange={(e) => setQuery({ ...query, [p.name]: e.target.value })}
+                    onChange={(e) => {
+                      setQuery({ ...query, [p.name]: e.target.value });
+                      setResult(undefined);
+                      setError('');
+                    }}
                   />
                   <small>{plainDescription(p.description)}</small>
                 </div>

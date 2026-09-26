@@ -6,7 +6,7 @@ Verified September 26, 2026 against a real, disposable InterSystems IRIS Communi
 
 | Check                                                        | Result                                                                                                                                                               |
 | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run check`                                              | TypeScript and production bundles pass; 68 security and API-contract tests pass.                                                                                     |
+| `npm run check`                                              | TypeScript and production bundles pass; 75 security and API-contract tests pass.                                                                                     |
 | `npm audit`                                                  | No reported vulnerabilities in the installed dependency tree at verification time.                                                                                   |
 | Fresh `docker compose up -d --build` with a new named volume | Both services become healthy; login and real gateway requests pass.                                                                                                  |
 | `npm run test:install`                                       | Production static files, CSP, session, CSRF, info, applications, tasks, telemetry, logs and logout pass.                                                             |
@@ -70,3 +70,7 @@ The subsequent recheck fixed duplicate unmasked fallback consoles and rejected m
 ## Third requested review
 
 The next review corrected false success for nonempty native error lists without messages and added target locking to Relay reconciliation. All 73 tests, TypeScript and production builds pass. Rebuilt local portals again passed installation, native smoke and extended workflows, plus Atlas access analysis and Relay runbooks. Dependency audits reported zero known vulnerabilities. Deterministic failing-before/passing-after fixtures and the scope of the locking guarantee are documented in [SECURITY_RECHECK.md](SECURITY_RECHECK.md).
+
+## Expanded review
+
+The final build passes 75 tests. The expanded review added malformed-capture and graph cases, upstream protocol checks, native task-edit preservation checks, and browser checks of request sequencing and sign-out failures. All primary native suites, Atlas access analysis, Relay runbooks, X.509 and demo process-control suites passed; final installed-gateway checks passed after the last rebuild. See [DEEP_REVIEW.md](DEEP_REVIEW.md) for fixes, evidence and the stopping criterion.

@@ -53,6 +53,7 @@ const navigation = [
 
 export default function App() {
   const [session, setSession] = useState<any>(),
+    [sessionError, setSessionError] = useState(''),
     [checking, setChecking] = useState(true),
     [page, setPage] = useState(() => location.hash.slice(1) || 'overview'),
     [toast, setToast] = useState(''),
@@ -107,9 +108,27 @@ export default function App() {
     setCommand(false);
   };
 
+  async function logout() {
+    setSessionError('');
+    try {
+      await request('logout', {});
+      setSession(undefined);
+    } catch (error) {
+      setSessionError('Sign out could not be confirmed. ' + (error as Error).message);
+    }
+  }
+
   if (checking) return <Loading />;
 
-  if (!session) return <Login onLogin={setSession} />;
+  if (!session)
+    return (
+      <Login
+        onLogin={(value) => {
+          setSessionError('');
+          setSession(value);
+        }}
+      />
+    );
 
   const info = session.info,
     props = { info, notify: setToast };
@@ -156,13 +175,7 @@ export default function App() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <button
-            className="profile"
-            onClick={async () => {
-              await request('logout', {});
-              setSession(undefined);
-            }}
-          >
+          <button className="profile" onClick={() => void logout()}>
             <span className="avatar">{info.username?.slice(0, 2).toUpperCase()}</span>
             <span>
               <strong>{info.username}</strong>
@@ -209,6 +222,7 @@ export default function App() {
           </div>
         </header>
         <main id="main-content" tabIndex={-1}>
+          {sessionError && <ErrorBox error={sessionError} retry={() => void logout()} />}
           {page === 'overview' && <Overview navigate={navigate} info={info} />}
 
           {page === 'apps' && <Collection entity={entities.apps} {...props} />}
