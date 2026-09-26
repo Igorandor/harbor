@@ -42,6 +42,13 @@ export function createApp(options: AppOptions) {
     next();
   });
   app.use('/api', (req, _res, next) => {
+    // Without an explicit public origin, only literal loopback hosts are accepted.
+    // Reflecting any Host as the allowed Origin permits DNS-rebinding requests.
+    if (
+      !options.origin &&
+      !/^(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(req.headers.host ?? '')
+    )
+      return next(new ApiError(403, 'Set PUBLIC_ORIGIN before using a non-loopback host.'));
     if (!['GET', 'HEAD'].includes(req.method)) {
       const origin = req.headers.origin;
       const allowed = options.origin ?? `http://${req.headers.host}`;
@@ -87,7 +94,7 @@ export function createApp(options: AppOptions) {
     const id = randomBytes(32).toString('hex'),
       csrf = randomBytes(32).toString('hex');
     sessions.set(id, { auth, csrf, created: time, seen: time, info: result.data, activity: [] });
-    attempts.delete(key);
+    // A valid account must not reset the budget for guesses against other accounts.
     res.cookie('harbor_session', id, {
       httpOnly: true,
       sameSite: 'strict',

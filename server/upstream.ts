@@ -1,4 +1,5 @@
-import { redact } from '../shared/redaction.js';
+import { boundedJson } from './json-limits.js';
+import { credentialValues, redact } from '../shared/redaction.js';
 
 import { spec, parameters, type RecordData } from '../shared/schema.js';
 
@@ -52,6 +53,8 @@ const editable = new Set([
 ]);
 
 export function validateOperation(op: Operation) {
+  if (!boundedJson(op.body, 32, 20000))
+    throw new ApiError(400, 'The request body is too deeply nested or complex.');
   const method = op.method.toLowerCase();
 
   if (op.path === '/extension/telemetry' || op.path === '/extension/logs') {
@@ -101,6 +104,7 @@ export function validateOperation(op: Operation) {
 export { redact } from '../shared/redaction.js';
 
 export function irisError(data: any): string | undefined {
+  data = redact(data);
   const errors = data?.status?.errors ?? data?.status?.Errors;
 
   if (Array.isArray(errors) && errors.length)
@@ -117,6 +121,8 @@ export function irisError(data: any): string | undefined {
 }
 
 export class IrisClient {
+  private active = 0;
+  private readonly accountActive = new Map<string, number>();
   constructor(
     private baseUrl: string,
     private fetcher: typeof fetch = fetch,
@@ -124,7 +130,25 @@ export class IrisClient {
 
   async request(auth: string, op: Operation) {
     validateOperation(op);
+    const accountCount = this.accountActive.get(auth) ?? 0;
+    if (this.active >= 16 || accountCount >= 8)
+      throw new ApiError(
+        429,
+        'Too many concurrent IRIS requests. Wait for current requests to finish.',
+      );
+    this.active++;
+    this.accountActive.set(auth, accountCount + 1);
+    try {
+      return await this.executeRequest(auth, op);
+    } finally {
+      this.active--;
+      const remaining = (this.accountActive.get(auth) ?? 1) - 1;
+      if (remaining) this.accountActive.set(auth, remaining);
+      else this.accountActive.delete(auth);
+    }
+  }
 
+  private async executeRequest(auth: string, op: Operation) {
     const extension = op.path.startsWith('/extension/');
 
     const url = new URL(
@@ -210,7 +234,28 @@ export class IrisClient {
       );
     }
 
-    const problem = irisError(data);
+    if (!boundedJson(data, 64, 200000))
+      throw new ApiError(502, 'IRIS returned data that is too deeply nested or complex.');
+
+    const secrets = credentialValues(op.body);
+    if (auth.startsWith('Basic ')) {
+      const credentials = Buffer.from(auth.slice(6), 'base64').toString('utf8');
+      const separator = credentials.indexOf(':');
+      if (separator >= 0) secrets.push(credentials.slice(separator + 1));
+      secrets.push(auth, auth.slice(6));
+    }
+    // Diagnostics sometimes serialize a submitted value inside another JSON string or URL.
+    const representations = secrets.flatMap((secret) => [
+      secret,
+      JSON.stringify(secret).slice(1, -1),
+      encodeURIComponent(Buffer.from(secret, 'utf8').toString('utf8')),
+      new URLSearchParams({ value: secret }).toString().slice(6),
+    ]);
+    const diagnosticSecrets = [...new Set(representations)].sort((a, b) => b.length - a.length);
+    // Preserve structured identities and configuration values: a password may equal a
+    // username or resource name. Free-text diagnostic filtering must never change ownership.
+    data = redact(data);
+    const problem = irisError(redact(data, diagnosticSecrets));
 
     if (!response.ok || problem)
       throw new ApiError(
@@ -235,8 +280,11 @@ export class IrisClient {
     const location = response.headers.get('location');
 
     return {
-      data: redact(data.result ?? data),
-      console: redact(data.console ?? []),
+      data:
+        op.path === '/extension/logs'
+          ? redact(data.result ?? data, diagnosticSecrets)
+          : (data.result ?? data),
+      console: redact(data.console ?? [], diagnosticSecrets),
       status: response.status,
 
       asyncId:

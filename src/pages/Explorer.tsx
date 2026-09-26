@@ -1,3 +1,4 @@
+import { DataView } from '../components/DataView';
 import { useState } from 'react';
 import { Download, Play, Search } from 'lucide-react';
 import { parameters, plainDescription, readablePaths } from '../../shared/schema';
@@ -116,8 +117,13 @@ export function Explorer() {
                   <Download size={14} /> Save response
                 </button>
               </div>
-              <pre className="json-output">{JSON.stringify(result.data, null, 2)}</pre>
-              {result.console?.length > 0 && <pre>{result.console.join('\n')}</pre>}
+              <DataView key={path} data={result.data} technical />
+              {result.console?.length > 0 && (
+                <section aria-label="API console messages">
+                  <h3>API console messages</h3>
+                  <DataView data={{ lines: result.console }} kind="logs" />
+                </section>
+              )}
             </>
           )}
         </section>

@@ -6,7 +6,7 @@ Verified September 26, 2026 against a real, disposable InterSystems IRIS Communi
 
 | Check                                                        | Result                                                                                                                                                               |
 | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run check`                                              | TypeScript and production bundles pass; 42 security and API-contract tests pass.                                                                                     |
+| `npm run check`                                              | TypeScript and production bundles pass; 62 security and API-contract tests pass.                                                                                     |
 | `npm audit`                                                  | No reported vulnerabilities in the installed dependency tree at verification time.                                                                                   |
 | Fresh `docker compose up -d --build` with a new named volume | Both services become healthy; login and real gateway requests pass.                                                                                                  |
 | `npm run test:install`                                       | Production static files, CSP, session, CSRF, info, applications, tasks, telemetry, logs and logout pass.                                                             |
@@ -46,3 +46,13 @@ The actual browser was used against the real server, including the production Co
 - Edit conflict detection is a read-before-write check; the native API does not provide an atomic ETag condition here.
 - Logs may contain application data despite best-effort masking. Review exports before sharing them.
 - Session state and the last 100 portal activity records live only in process memory. They are not a durable security audit; use native IRIS audit for that purpose.
+
+## Structured-data follow-up, September 26
+
+The final source passes TypeScript, production bundling and 62 tests. The rebuilt Compose stack passed installed-gateway, native CRUD/observability and extended workflow suites.
+
+Browser checks covered the structured REST response, nested disclosures and the distinct product workspace. Shared components were exercised through Harbor's native MatchRoles array: adding an object and nested TargetRoles array, editing a value, closing/reopening without loss, reviewing the result and removing an entry. The draft was cancelled without applying permissions. Relay checks covered real stored host, health, message and scheduling-state evidence, unit switching, classification, empty filters and keyboard activation. Atlas checks covered an empty baseline comparison and an added disposable resource shown as field differences; the resource was removed afterward.
+
+The responsive checks used a 390 × 844 viewport. They found an absolutely positioned screen-reader table label escaping its horizontal scroll area; the scroll container now provides its positioning context. Wide tables keep their own horizontal scroll. The inspected browser error/warning logs were empty. These checks are interactive evidence, not an accessibility certification.
+
+Native resource creation rejected missing and empty PublicPermission values in this review, and the form retained the error and draft for correction. A populated disposable resource succeeded. This is not evidence that every native schema constraint is validated before submission. Presentation choices and limits are described in [DATA_VIEWS.md](DATA_VIEWS.md).

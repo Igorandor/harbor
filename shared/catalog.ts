@@ -286,4 +286,5 @@ export const labels: Record<string, string> = {
   Enabled: 'Status',
 };
 
-export const label = (key: string) => labels[key] ?? key.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+export const label = (key: string): string =>
+  Object.hasOwn(labels, key) ? labels[key] : key.replace(/([a-z0-9])([A-Z])/g, '$1 $2');

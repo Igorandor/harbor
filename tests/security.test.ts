@@ -170,3 +170,118 @@ test('oversized upstream streams are cancelled before parsing', async () => {
   );
   assert.equal(cancelled, true);
 });
+
+test('successful logins cannot reset the password-guessing budget', async () => {
+  const { agent, advance } = fixture();
+  for (let i = 0; i < 9; i++)
+    await agent.post('/api/login').send({ username: 'test', password: 'wrong' }).expect(401);
+  await agent.post('/api/login').send({ username: 'test', password: 'valid' }).expect(200);
+  await agent.post('/api/login').send({ username: 'test', password: 'wrong' }).expect(429);
+  advance(60001);
+  await agent.post('/api/login').send({ username: 'test', password: 'valid' }).expect(200);
+});
+
+test('OAuth and separator-spelled credentials are redacted without hiding metadata', () => {
+  assert.deepEqual(
+    redact({
+      ClientSecret: 'oauth-secret',
+      private_key: 'pem',
+      client_secret: 'secret',
+      ClientSecretInterval: 60,
+      SecretName: 'display-name',
+    }),
+    {
+      ClientSecret: '[redacted]',
+      private_key: '[redacted]',
+      client_secret: '[redacted]',
+      ClientSecretInterval: 60,
+      SecretName: 'display-name',
+    },
+  );
+});
+
+test('upstream error envelopes cannot disclose structured credentials', async () => {
+  const client = new IrisClient('http://iris', async () =>
+    Response.json(
+      {
+        error: {
+          Password: 'sensitive-password',
+          ClientSecret: 'sensitive-client-secret',
+          message: 'Rejected',
+        },
+      },
+      { status: 400 },
+    ),
+  );
+  await assert.rejects(
+    () => client.request('x', { path: '/info', method: 'GET' }),
+    (error: any) => {
+      assert.doesNotMatch(error.message, /sensitive-password|sensitive-client-secret/);
+      assert.match(error.message, /Rejected/);
+      return true;
+    },
+  );
+});
+
+test('upstream diagnostics cannot echo submitted passwords or client secrets', async () => {
+  const auth = 'Basic ' + Buffer.from('tester:authentication-password').toString('base64');
+  const client = new IrisClient('http://iris', async () =>
+    Response.json({
+      status: {
+        errors: ['Invalid client secret submitted-client-secret using authentication-password'],
+      },
+    }),
+  );
+  await assert.rejects(
+    () =>
+      client.request(auth, {
+        path: '/v2/security/oauth2/client/client-configuration/secrets',
+        method: 'POST',
+        query: { applicationName: 'example' },
+        body: { ClientSecret: 'submitted-client-secret' },
+      }),
+    (error: any) => {
+      assert.doesNotMatch(error.message, /submitted-client-secret|authentication-password/);
+      assert.match(error.message, /Invalid client secret/);
+      return true;
+    },
+  );
+});
+
+test('serialized and URL-encoded credential echoes are removed from diagnostics', async () => {
+  const password = 'audit "quoted" + value';
+  const encoded = [JSON.stringify(password).slice(1, -1), encodeURIComponent(password)];
+  const client = new IrisClient('http://iris', async () =>
+    Response.json({ error: `Invalid credentials: ${encoded.join(' or ')}` }, { status: 401 }),
+  );
+  await assert.rejects(
+    () =>
+      client.request('Basic ' + Buffer.from(`tester:${password}`).toString('base64'), {
+        path: '/info',
+        method: 'GET',
+      }),
+    (error: any) => {
+      for (const value of encoded) assert.ok(!error.message.includes(value));
+      assert.match(error.message, /Invalid credentials/);
+      return true;
+    },
+  );
+});
+
+test('diagnostic masking cannot rewrite a canonical username or resource identifier', async () => {
+  for (const username of ['reader-one', 'reader-two']) {
+    const client = new IrisClient('http://iris', async () =>
+      Response.json({
+        result: { username, apiVersion: 2, Password: username },
+        console: [`Signed in with ${username}`],
+      }),
+    );
+    const response = await client.request(
+      'Basic ' + Buffer.from(`${username}:${username}`).toString('base64'),
+      { path: '/info', method: 'GET' },
+    );
+    assert.equal(response.data.username, username);
+    assert.equal(response.data.Password, '[redacted]');
+    assert.ok(!JSON.stringify(response.console).includes(username));
+  }
+});

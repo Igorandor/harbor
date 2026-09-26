@@ -1,0 +1,284 @@
+.data-view,
+.data-browser,
+.host-view,
+.data-diff {
+  min-width: 0;
+}
+.data-view {
+  padding: 12px 0;
+}
+.data-fields {
+  margin: 0;
+  font-size: 13px;
+}
+.data-fields > div {
+  display: grid;
+  grid-template-columns: minmax(110px, 32%) minmax(0, 1fr);
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+}
+.data-fields dt {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.data-fields dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.data-fields summary,
+.data-extra summary {
+  cursor: pointer;
+  padding: 6px 0;
+  color: var(--accent);
+}
+.data-scalar {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.data-list {
+  margin: 0;
+  padding-left: 18px;
+  max-height: 250px;
+  overflow: auto;
+}
+.data-boolean {
+  font-weight: 650;
+}
+.data-toolbar {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 12px 0;
+}
+.data-toolbar label {
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+}
+.data-toolbar input {
+  min-width: 150px;
+}
+.data-browser table {
+  min-width: 540px;
+}
+.data-browser th button {
+  border: 0;
+  background: transparent;
+  padding: 4px 0;
+  text-align: left;
+}
+.data-browser td {
+  max-width: 260px;
+  white-space: normal;
+  vertical-align: top;
+}
+.data-pagination {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: end;
+  padding: 12px 0;
+}
+.data-record {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  padding: 16px;
+  background: var(--panel);
+}
+.capacity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.capacity-panel {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 20px;
+}
+.capacity-panel h4,
+.load-chart h4 {
+  margin: 0 0 12px;
+}
+.capacity-panel > strong {
+  font-size: 25px;
+  display: block;
+  margin-bottom: 12px;
+}
+.capacity-panel meter,
+.load-row meter {
+  width: 100%;
+  height: 18px;
+  accent-color: var(--accent);
+}
+meter::-webkit-meter-optimum-value {
+  background: var(--accent);
+}
+meter::-webkit-meter-bar {
+  background: var(--tint);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+}
+.capacity-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 12px;
+}
+.capacity-key span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.capacity-key b {
+  display: block;
+  color: var(--text);
+  margin-top: 3px;
+}
+.load-chart {
+  padding: 16px 0;
+}
+.load-chart p,
+.data-log > p {
+  font-size: 12px;
+  color: var(--muted);
+}
+.load-row {
+  display: grid;
+  grid-template-columns: 50px minmax(60px, 1fr) 65px;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 13px;
+}
+.load-row b {
+  text-align: right;
+}
+.data-extra {
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  padding: 10px 0;
+  font-size: 12px;
+}
+.data-extra p {
+  color: var(--muted);
+}
+.health-checks {
+  list-style: none;
+  margin: 16px 0;
+  padding: 0;
+}
+.health-checks li {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.data-diff {
+  padding: 18px;
+}
+.data-diff > label {
+  margin-bottom: 12px;
+}
+.data-diff td {
+  vertical-align: top;
+  min-width: 130px;
+  white-space: normal;
+}
+.structured-field {
+  border: 1px solid var(--line);
+  padding: 12px;
+  min-width: 0;
+}
+.structured-field legend {
+  font-size: 12px;
+}
+.structured-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  padding: 8px 0;
+}
+.structured-pair {
+  display: grid;
+  gap: 6px;
+}
+@media (max-width: 700px) {
+  .capacity-grid {
+    grid-template-columns: 1fr;
+  }
+  .data-fields > div {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+  .data-pagination {
+    justify-content: start;
+  }
+  .capacity-panel {
+    padding: 14px;
+  }
+}
+
+.state-transition {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.state-transition > div {
+  flex: 1;
+  min-width: 130px;
+  padding: 16px;
+  border: 1px solid var(--line);
+}
+.state-transition span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.state-transition strong {
+  font-size: 19px;
+}
+
+.structured-section {
+  min-width: 0;
+}
+.structured-section summary {
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  padding: 8px 0;
+  color: var(--accent);
+}
+.structured-pair,
+.structured-field input,
+.structured-field select {
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 700px) {
+  .structured-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .structured-item > button {
+    justify-self: start;
+  }
+}
+
+/* Keep absolutely positioned accessible table labels inside the scroll area. */
+.table-scroll {
+  position: relative;
+}
+
+.data-browser td {
+  min-width: 100px;
+}
+.data-browser td:last-child {
+  min-width: 150px;
+}
+.data-browser td button {
+  white-space: nowrap;
+}

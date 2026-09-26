@@ -146,3 +146,5 @@ There is no background AI service, analytics, paid API, cloud account requiremen
 ## License and attribution
 
 Original application code is MIT licensed. The InterSystems API specification is attributed separately in [THIRD_PARTY.md](THIRD_PARTY.md). InterSystems IRIS is a separately licensed product and is not covered by this repository's MIT license.
+
+See [Reading and editing native API data](docs/DATA_VIEWS.md) for interactive response views, nested configuration controls and their limits.

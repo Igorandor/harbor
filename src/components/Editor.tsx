@@ -1,3 +1,5 @@
+import { DataValue } from './DataView';
+import { StructuredField } from './StructuredField';
 import { useState } from 'react';
 
 import { ArrowLeft, ArrowRight, Check, Plus, Trash2 } from 'lucide-react';
@@ -81,15 +83,16 @@ function Field({
         onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value === 'true')}
       >
         <option value="">Use IRIS default</option>
-        <option value="true">Yes</option>
-        <option value="false">No</option>
+        <option value="true">{name === 'Suspended' ? 'Paused' : 'Yes'}</option>
+        <option value="false">{name === 'Suspended' ? 'Scheduled' : 'No'}</option>
       </select>
     ) : name === 'Resources' ? (
       <ResourceGrants value={Array.isArray(value) ? value : []} onChange={onChange} />
     ) : resolved.type === 'array' && (resolved.items?.type === 'string' || !resolved.items) ? (
       <StringList id={id} value={value ?? []} onChange={onChange} />
     ) : resolved.type === 'object' || resolved.type === 'array' ? (
-      <JsonField
+      <StructuredField
+        schema={resolved}
         id={id}
         value={value ?? (resolved.type === 'array' ? [] : {})}
         onChange={onChange}
@@ -155,42 +158,6 @@ function StringList({
         );
       }}
     />
-  );
-}
-
-function JsonField({
-  id,
-  value,
-  onChange,
-}: {
-  id: string;
-  value: any;
-  onChange: (value: any) => void;
-}) {
-  const [text, setText] = useState(JSON.stringify(value, null, 2)),
-    [error, setError] = useState('');
-
-  return (
-    <>
-      <textarea
-        id={id}
-        className="code-input"
-        rows={6}
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value);
-          try {
-            onChange(JSON.parse(e.target.value));
-            setError('');
-            e.target.setCustomValidity('');
-          } catch {
-            setError('Enter valid JSON before continuing.');
-            e.target.setCustomValidity('Enter valid JSON.');
-          }
-        }}
-      />
-      {error && <small className="danger-text">{error}</small>}
-    </>
   );
 }
 
@@ -580,11 +547,13 @@ export function Editor({
                   <tr key={k}>
                     <td>{label(k)}</td>
                     <td>
-                      {sensitive(k)
-                        ? 'Hidden'
-                        : (JSON.stringify(redact(initial?.[k])) ?? 'Not set')}
+                      {sensitive(k) ? (
+                        'Hidden'
+                      ) : (
+                        <DataValue value={redact(initial?.[k])} field={k} />
+                      )}
                     </td>
-                    <td>{sensitive(k) ? '••••••••' : JSON.stringify(redact(v))}</td>
+                    <td>{sensitive(k) ? '••••••••' : <DataValue value={redact(v)} field={k} />}</td>
                   </tr>
                 ))}
                 {password && (

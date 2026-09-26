@@ -1,8 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { entities } from '../shared/catalog';
+import { entities, label } from '../shared/catalog';
 import { bodySchema, parameters, resolveSchema, spec } from '../shared/schema';
 import upstreamSpec from '../shared/iris-openapi.json';
+
+test('untrusted field names cannot resolve inherited label values', () => {
+  for (const key of ['__proto__', 'constructor', 'toString', 'valueOf', 'hasOwnProperty']) {
+    assert.equal(typeof label(key), 'string');
+    assert.equal(label(key), key.replace(/([a-z0-9])([A-Z])/g, '$1 $2'));
+  }
+  assert.equal(label('NameSpace'), 'Namespace');
+});
 
 function responseSchema(schema: any): any {
   if (schema?.$ref)

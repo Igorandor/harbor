@@ -1,3 +1,4 @@
+import { HostView } from '../components/DataView';
 import { useEffect, useRef, useState } from 'react';
 import { Cpu, HardDrive, MemoryStick, Timer } from 'lucide-react';
 import { entities } from '../../shared/catalog';
@@ -77,6 +78,12 @@ export function System({ info, notify }: { info: any; notify: (s: string) => voi
         {d?.scope ?? 'Telemetry is collected inside the IRIS host using Embedded Python.'}{' '}
         {d?.notice}
       </p>
+      {d && (
+        <details className="panel padded">
+          <summary>Capacity breakdown and load averages</summary>
+          <HostView data={d} />
+        </details>
+      )}
       <div className="tabs" aria-label="System views">
         {['processes', 'devices', 'databases'].map((id) => (
           <button

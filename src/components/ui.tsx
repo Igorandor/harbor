@@ -1,3 +1,4 @@
+import { DataValue } from './DataView';
 import { useEffect, useRef, type ReactNode } from 'react';
 
 import { AlertCircle, Check, ChevronRight, LoaderCircle, RefreshCw, X } from 'lucide-react';
@@ -53,22 +54,7 @@ export function Value({ value, field = '' }: { value: any; field?: string }) {
       </Badge>
     );
 
-  if (Array.isArray(value))
-    return (
-      <span className="chips">
-        {value.length ? (
-          value.map((v, i) => (
-            <span key={i} className="chip">
-              {typeof v === 'object' ? JSON.stringify(v) : String(v)}
-            </span>
-          ))
-        ) : (
-          <span className="muted">None</span>
-        )}
-      </span>
-    );
-
-  if (typeof value === 'object') return <code>{JSON.stringify(value)}</code>;
+  if (typeof value === 'object') return <DataValue value={value} />;
 
   return <span>{String(value)}</span>;
 }
