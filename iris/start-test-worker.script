@@ -1,0 +1,6 @@
+zn "%SYS"
+set ^HarborDemo("workerPid")=0
+job ##class(Harbor.DemoTask).Worker()
+for wait=1:1:20 quit:$Get(^HarborDemo("workerPid"))>0  hang .1
+write "HARBOR_TEST_PID=",^HarborDemo("workerPid"),!
+halt
