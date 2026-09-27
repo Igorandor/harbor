@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Download, RefreshCw, Search } from 'lucide-react';
-import { download, request } from '../../api';
+import { download, request, RequestError } from '../../api';
 import { useData } from '../../hooks';
 import { Badge, Details, Empty, ErrorBox, Loading, PageHeader, Value } from '../../components/ui';
 import {
@@ -623,7 +623,13 @@ function TaskDetail({
         if (live && current === sequence.current) setObservation(value);
       })
       .catch((caught) => {
-        if (live && current === sequence.current) setError((caught as Error).message);
+        if (live && current === sequence.current) {
+          if (caught instanceof RequestError && caught.status === 403) {
+            setObservation(undefined);
+            setBaseline(undefined);
+          }
+          setError((caught as Error).message);
+        }
       })
       .finally(() => {
         if (live && current === sequence.current) setLoading(false);
