@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { Download, Search } from 'lucide-react';
 
-import { iris, request, download } from '../api';
+import { iris, request, download, RequestError } from '../api';
 
 import { Empty, ErrorBox, Loading, PageHeader, Refresh, Table } from '../components/ui';
 
@@ -56,6 +56,12 @@ export function Logs() {
     [from, setFrom] = useState('');
 
   useEffect(() => {
+    setData(undefined);
+    setAt(undefined);
+    setError('');
+  }, [source, from]);
+
+  useEffect(() => {
     let active = true,
       inFlight = false;
     const load = async () => {
@@ -84,13 +90,18 @@ export function Logs() {
           setError('');
         }
       } catch (e) {
-        if (active) setError((e as Error).message);
+        if (active) {
+          if (e instanceof RequestError && e.status === 403) {
+            setData(undefined);
+            setAt(undefined);
+          }
+          setError((e as Error).message);
+        }
       } finally {
         inFlight = false;
         if (active) setLoading(false);
       }
     };
-    setData(undefined);
     void load();
     const timer = follow
       ? setInterval(() => {
