@@ -18,6 +18,13 @@ export type ChangeField = {
   matches?: boolean;
 };
 export type ChangeEvent = { at: string; action: string; message: string };
+export type ChangeEvidenceSource = 'result' | 'observation' | 'field observations';
+export type ChangeEvidenceOmission = {
+  source: ChangeEvidenceSource;
+  bytes: number;
+  at: string;
+  previousRetained: boolean;
+};
 export type ChangeRecord = {
   version: 1;
   id: string;
@@ -37,6 +44,7 @@ export type ChangeRecord = {
   baseline?: unknown;
   result?: unknown;
   observation?: unknown;
+  evidenceOmissions?: ChangeEvidenceOmission[];
   nativeStatus?: number;
   asyncId?: string;
   readback?: { path: string; query: Record<string, string> };

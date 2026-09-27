@@ -1,10 +1,44 @@
 import { ApiError, IrisClient, validateOperation, type Operation } from './upstream.js';
-import { WorkspaceStore, type WorkspaceIdentity } from './workspace-store.js';
+import {
+  WorkspaceStore,
+  workspaceRecordByteLimit,
+  type WorkspaceIdentity,
+} from './workspace-store.js';
 import { redact, credentialValues } from '../shared/redaction.js';
-import { stableValue, type ChangeRecord, type ChangeField } from '../shared/change-record.js';
+import {
+  stableValue,
+  type ChangeRecord,
+  type ChangeField,
+  type ChangeEvidenceSource,
+} from '../shared/change-record.js';
 import { parameters, spec } from '../shared/schema.js';
 import { assessChangeImpact } from './change-impact.js';
 import { parseProcessState } from '../shared/runtime-analysis.js';
+
+const outcomeMessages = {
+  dispatch: 'The request is being sent once. An interrupted response will require reconciliation.',
+  async: 'IRIS accepted asynchronous work. Inspect the job before requesting another operation.',
+  readbackFailed:
+    'IRIS responded to the write, but current state could not be read. No write was retried.',
+  rejected: 'IRIS rejected the request. No successful result is claimed.',
+  unknown:
+    'The result could not be confirmed. Read the current state before requesting another change.',
+  acknowledged:
+    'IRIS acknowledged the request. This operation has no readable value comparison; inspect its metadata or execution history separately.',
+  absent: 'The selected target was not found during readback.',
+  present: 'The target still exists. The deletion is not verified.',
+  processUnknown: 'IRIS did not return a process execution state. The action is not verified.',
+  processMatch: 'The selected process generation has the requested observed state.',
+  processMismatch: 'The process identity or observed state does not confirm this action.',
+  taskMatch: 'The authoritative task state matches the request.',
+  taskMismatch: 'The authoritative task state does not match the request.',
+  fieldsMatch:
+    'Submitted readable fields match the fresh native record. Write-only values are not compared.',
+  fieldsMismatch:
+    'Readback differs from the requested fields. Inspect the observed values before making another change.',
+} as const;
+const eventLimit = 80;
+const reconciliationCaveat = ' Current state does not prove which actor changed it.';
 
 type Actor = WorkspaceIdentity & { auth: string };
 type Prepared = {
@@ -68,12 +102,104 @@ export class ChangeService {
   private event(record: ChangeRecord, action: string, message: string) {
     record.updatedAt = new Date().toISOString();
     record.events.push({ at: record.updatedAt, action, message });
-    record.events = record.events.slice(-80);
+    record.events = record.events.slice(-eventLimit);
   }
   private async save(record: ChangeRecord) {
     const previous = record.revision;
     record.revision++;
     return this.store.write(record, 'changes', previous);
+  }
+  private bytes(value: unknown) {
+    return Buffer.byteLength(JSON.stringify(value) ?? 'null', 'utf8');
+  }
+  private outcomeBytes(record: ChangeRecord) {
+    // Reserve actual envelope shapes: the existing 80-event bound at the longest
+    // outcome/reconciliation narrative, all potential field comparisons, three
+    // omission notices and the existing 2,000-character job/query ID bounds.
+    const narrative = Object.values(outcomeMessages).reduce((a, b) =>
+      this.bytes(a) >= this.bytes(b) ? a : b,
+    );
+    const at = new Date().toISOString();
+    const omissionSources: ChangeEvidenceSource[] = ['result', 'observation', 'field observations'];
+    const reserved = {
+      ...record,
+      revision: Number.MAX_SAFE_INTEGER,
+      state: 'acknowledged',
+      nativeStatus: 599,
+      explanation: narrative,
+      asyncId: '\u0001'.repeat(2000),
+      readback: { path: '/v2/task', query: { id: '9'.repeat(2000) } },
+      fields: record.fields.map((field) => ({ ...field, matches: false })),
+      evidenceOmissions: omissionSources.map((source) => ({
+        source,
+        bytes: Number.MAX_SAFE_INTEGER,
+        at,
+        previousRetained: false,
+      })),
+      events: [
+        ...record.events,
+        ...Array.from({ length: eventLimit }, () => ({
+          at,
+          action: 'acknowledged',
+          message: narrative + reconciliationCaveat,
+        })),
+      ],
+    };
+    return this.bytes(reserved);
+  }
+  private requireOutcomeRoom(record: ChangeRecord) {
+    if (this.outcomeBytes(record) > workspaceRecordByteLimit)
+      throw new ApiError(
+        413,
+        'This review has insufficient space to retain its outcome. No native write was sent. Preserve the record and inspect the target independently before preparing another change.',
+      );
+  }
+  private async saveOutcome(
+    record: ChangeRecord,
+    previous: ChangeRecord,
+    fresh: Set<ChangeEvidenceSource>,
+  ) {
+    // A new full read replaces the corresponding omission notice. Other notices
+    // still describe evidence retained from an earlier read and must remain visible.
+    record.evidenceOmissions = (record.evidenceOmissions ?? []).filter(
+      (item) => !fresh.has(item.source),
+    );
+    if (!record.evidenceOmissions.length) delete record.evidenceOmissions;
+    for (const source of ['result', 'observation', 'field observations'] as const) {
+      if (this.outcomeBytes(record) <= workspaceRecordByteLimit) break;
+      if (!fresh.has(source)) continue;
+      let bytes: number, previousRetained: boolean;
+      const replacement =
+        source === 'field observations'
+          ? previous.fields.map((field) => field.observed)
+          : previous[source];
+      const newValue =
+        source === 'field observations'
+          ? record.fields.map((field) => field.observed)
+          : record[source];
+      bytes = this.bytes(newValue);
+      previousRetained =
+        source === 'field observations'
+          ? previous.fields.some((field) => Object.hasOwn(field, 'observed'))
+          : Object.hasOwn(previous, source);
+      const omission = { source, bytes, at: record.updatedAt, previousRetained };
+      if (bytes - this.bytes(replacement) <= this.bytes(omission) + 1) continue;
+      if (source === 'field observations') {
+        const earlier = new Map(previous.fields.map((field) => [field.name, field]));
+        record.fields = record.fields.map((field) => {
+          const retained = { ...field },
+            old = earlier.get(field.name);
+          if (old && Object.hasOwn(old, 'observed')) retained.observed = old.observed;
+          else delete retained.observed;
+          return retained;
+        });
+      } else {
+        if (previousRetained) record[source] = previous[source];
+        else delete record[source];
+      }
+      (record.evidenceOmissions ??= []).push(omission);
+    }
+    return this.save(record);
   }
   private requireProcessIdentity(value: any) {
     if (
@@ -281,6 +407,9 @@ export class ChangeService {
         throw new ApiError(409, 'This review expired. Prepare the change again.');
       if (confirmation !== record.target)
         throw new ApiError(400, 'Type the exact target to confirm the change.');
+      this.requireOutcomeRoom(record);
+      const previous = clone(record),
+        fresh = new Set<ChangeEvidenceSource>();
       const op = prepared.operation;
       this.protectAccess(actor, op);
       const canonicalTarget = op.path.startsWith('/v2/web-app')
@@ -339,23 +468,22 @@ export class ChangeService {
             throw new ApiError(409, 'IRIS does not permit terminating this process.');
         }
         record.state = 'sending';
-        this.event(
-          record,
-          'dispatch',
-          'The request is being sent once. An interrupted response will require reconciliation.',
-        );
+        this.event(record, 'dispatch', outcomeMessages.dispatch);
         await this.save(record);
         this.pending.delete(id);
         try {
           const response = await this.client.request(actor.auth, op);
           record.nativeStatus = response.status;
           record.result = redact(response.data, credentialValues(op.body));
+          fresh.add('result');
           record.asyncId = response.asyncId;
           if (op.path === '/v2/task' && op.method === 'POST' && !op.query?.id) {
             const generated = response.data?.Id;
             if (
               (typeof generated === 'number' && Number.isSafeInteger(generated) && generated > 0) ||
-              (typeof generated === 'string' && /^[1-9]\d*$/.test(generated))
+              (typeof generated === 'string' &&
+                generated.length <= 2000 &&
+                /^[1-9]\d*$/.test(generated))
             ) {
               record.readback = { path: '/v2/task', query: { id: String(generated) } };
               record.verification = 'fields';
@@ -367,15 +495,13 @@ export class ChangeService {
           }
           if (response.asyncId) {
             record.state = 'uncertain';
-            record.explanation =
-              'IRIS accepted asynchronous work. Inspect the job before requesting another operation.';
+            record.explanation = outcomeMessages.async;
           } else {
             try {
-              await this.observe(actor, record, op);
+              await this.observe(actor, record, op, fresh);
             } catch {
               record.state = 'uncertain';
-              record.explanation =
-                'IRIS responded to the write, but current state could not be read. No write was retried.';
+              record.explanation = outcomeMessages.readbackFailed;
             }
           }
         } catch (error) {
@@ -383,23 +509,25 @@ export class ChangeService {
           record.state = status >= 400 && status < 500 && status !== 408 ? 'rejected' : 'uncertain';
           record.nativeStatus = status;
           record.explanation =
-            record.state === 'rejected'
-              ? 'IRIS rejected the request. No successful result is claimed.'
-              : 'The result could not be confirmed. Read the current state before requesting another change.';
+            record.state === 'rejected' ? outcomeMessages.rejected : outcomeMessages.unknown;
         }
         this.event(record, record.state, record.explanation);
-        return await this.save(record);
+        return await this.saveOutcome(record, previous, fresh);
       } finally {
         this.targets.delete(key);
       }
     });
   }
-  private async observe(actor: Actor, record: ChangeRecord, op: Operation) {
+  private async observe(
+    actor: Actor,
+    record: ChangeRecord,
+    op: Operation,
+    fresh: Set<ChangeEvidenceSource>,
+  ) {
     const reader = record.readback ?? this.reader(op);
     if (!reader || record.verification === 'response') {
       record.state = 'acknowledged';
-      record.explanation =
-        'IRIS acknowledged the request. This operation has no readable value comparison; inspect its metadata or execution history separately.';
+      record.explanation = outcomeMessages.acknowledged;
       return;
     }
     let observed: any;
@@ -412,15 +540,16 @@ export class ChangeService {
         (record.verification === 'absence' || record.path.endsWith('/terminate'))
       ) {
         record.state = 'verified';
-        record.explanation = 'The selected target was not found during readback.';
+        record.explanation = outcomeMessages.absent;
         return;
       }
       throw error;
     }
     record.observation = redact(observed);
+    fresh.add('observation');
     if (record.verification === 'absence') {
       record.state = 'uncertain';
-      record.explanation = 'The target still exists. The deletion is not verified.';
+      record.explanation = outcomeMessages.present;
       return;
     }
     if (record.verification === 'process') {
@@ -429,8 +558,7 @@ export class ChangeService {
       const parsedState = parseProcessState(state);
       if (parsedState.suspended === undefined) {
         record.state = 'uncertain';
-        record.explanation =
-          'IRIS did not return a process execution state. The action is not verified.';
+        record.explanation = outcomeMessages.processUnknown;
         return;
       }
       const matched = record.path.endsWith('/terminate')
@@ -438,18 +566,14 @@ export class ChangeService {
         : same &&
           (record.path.endsWith('/suspend') ? parsedState.suspended : !parsedState.suspended);
       record.state = matched ? 'verified' : 'uncertain';
-      record.explanation = matched
-        ? 'The selected process generation has the requested observed state.'
-        : 'The process identity or observed state does not confirm this action.';
+      record.explanation = matched ? outcomeMessages.processMatch : outcomeMessages.processMismatch;
       return;
     }
     if (record.verification === 'task-state') {
       const desired = record.path.endsWith('/suspend');
       record.state = observed.Suspended === desired ? 'verified' : 'uncertain';
       record.explanation =
-        record.state === 'verified'
-          ? 'The authoritative task state matches the request.'
-          : 'The authoritative task state does not match the request.';
+        record.state === 'verified' ? outcomeMessages.taskMatch : outcomeMessages.taskMismatch;
       return;
     }
     record.fields = record.fields.map((field) => ({
@@ -460,19 +584,20 @@ export class ChangeService {
           stableValue(redactField(field.name, observed[field.name]))
         : undefined,
     }));
+    fresh.add('field observations');
     const readable = record.fields.filter((field) => field.readable);
     record.state =
       readable.length && readable.every((field) => field.matches) ? 'verified' : 'uncertain';
     record.explanation =
-      record.state === 'verified'
-        ? 'Submitted readable fields match the fresh native record. Write-only values are not compared.'
-        : 'Readback differs from the requested fields. Inspect the observed values before making another change.';
+      record.state === 'verified' ? outcomeMessages.fieldsMatch : outcomeMessages.fieldsMismatch;
   }
   async reconcile(actor: Actor, id: string, revision: number) {
     return this.store.exclusive(actor, 'changes', id, async () => {
       const record = await this.store.read<ChangeRecord>(actor, 'changes', id);
       if (record.revision !== revision || !['uncertain', 'sending'].includes(record.state))
         throw new ApiError(409, 'Only an unresolved current change can be reconciled.');
+      const previous = clone(record),
+        fresh = new Set<ChangeEvidenceSource>();
       if (record.asyncId) {
         const job = await this.client.request(actor.auth, {
           path: '/v2/async-result',
@@ -480,26 +605,27 @@ export class ChangeService {
           query: { id: record.asyncId },
         });
         record.result = redact(job.data);
+        fresh.add('result');
         if (job.data.State !== 'Finished') {
+          const state = job.data.State;
           record.explanation =
-            'Background job status: ' + String(job.data.State) + '. No write was retried.';
+            typeof state === 'string' &&
+            ['Running', 'Queued', 'Failed', 'Canceled', 'Paused'].includes(state)
+              ? 'Background job status: ' + state + '. No write was retried.'
+              : 'Background job returned an unrecognized state. Inspect the native job; no write was retried.';
           this.event(record, 'job-inspected', record.explanation);
-          return this.save(record);
+          return this.saveOutcome(record, previous, fresh);
         }
       }
       const op: Operation = { path: record.path, method: record.method, query: record.query };
       try {
-        await this.observe(actor, record, op);
+        await this.observe(actor, record, op, fresh);
       } catch {
         record.state = 'uncertain';
         record.explanation = 'Current state could not be read. No write was retried.';
       }
-      this.event(
-        record,
-        'reconciled',
-        record.explanation + ' Current state does not prove which actor changed it.',
-      );
-      return this.save(record);
+      this.event(record, 'reconciled', record.explanation + reconciliationCaveat);
+      return this.saveOutcome(record, previous, fresh);
     });
   }
 }

@@ -191,6 +191,28 @@ export function Changes() {
               <p className={changeNeedsAttention(selected) ? 'notice warning' : 'notice'}>
                 {selected.explanation}
               </p>
+              {selected.evidenceOmissions?.length ? (
+                <div className="notice warning">
+                  <strong>
+                    Some new evidence was not retained because of the record size limit.
+                  </strong>
+                  <p>
+                    When a readback succeeded, field comparisons used the full response. Omitted
+                    values are unavailable as current evidence in this record or its export.
+                  </p>
+                  <ul>
+                    {selected.evidenceOmissions.map((item) => (
+                      <li key={item.source}>
+                        {item.source}: {item.bytes.toLocaleString()} bytes omitted at{' '}
+                        {new Date(item.at).toLocaleString()}.
+                        {item.previousRetained
+                          ? ' Earlier saved values remain in the record; they are not the current readback.'
+                          : ' No earlier value is retained.'}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               {awaitingRead === selected.id && (
                 <p className="notice warning">
                   This view is awaiting confirmation of the execution response. The displayed record
@@ -251,7 +273,13 @@ export function Changes() {
                           <td>
                             {field.readable ? (
                               <>
-                                <DataValue value={field.observed} field={field.name} />
+                                {selected.evidenceOmissions?.some(
+                                  (item) => item.source === 'field observations',
+                                ) ? (
+                                  <span>Current value not retained</span>
+                                ) : (
+                                  <DataValue value={field.observed} field={field.name} />
+                                )}
                                 {field.matches !== undefined ? (
                                   <small className={field.matches ? 'good-text' : 'warning-text'}>
                                     {field.matches ? 'Matches' : 'Does not match'}
@@ -320,7 +348,19 @@ export function Changes() {
               </div>
               <details className="padded">
                 <summary>Native response and observation</summary>
-                <DataValue value={{ response: selected.result, observed: selected.observation }} />
+                {selected.evidenceOmissions?.length ? (
+                  <p className="notice warning">
+                    New evidence was omitted from this record. Values marked previousRetained below
+                    are earlier saved evidence, not the current response or readback.
+                  </p>
+                ) : null}
+                <DataValue
+                  value={{
+                    response: selected.result,
+                    observed: selected.observation,
+                    evidenceOmissions: selected.evidenceOmissions,
+                  }}
+                />
               </details>
               <h3 className="padded">History</h3>
               <ol className="record-timeline">

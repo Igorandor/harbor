@@ -361,3 +361,51 @@ test('execute wrapper retains current 401 and session-change 409 explanations', 
     );
   }
 });
+
+test('change detail never presents an earlier retained field value as the current readback', async () => {
+  const f = await selectedChange();
+  const record = {
+    ...ticket('ticket-A', 'uncertain'),
+    nativeStatus: 200,
+    fields: [
+      {
+        name: 'Description',
+        before: 'Before',
+        requested: 'After',
+        readable: true,
+        observed: 'Earlier readback',
+        matches: false,
+      },
+    ],
+    observation: { Description: 'Earlier readback' },
+    evidenceOmissions: [
+      { source: 'observation', bytes: 4050018, at: '2026-09-27T12:00:00Z', previousRetained: true },
+      {
+        source: 'field observations',
+        bytes: 4050004,
+        at: '2026-09-27T12:00:00Z',
+        previousRetained: true,
+      },
+    ],
+  };
+  f.responses.push(Response.json(record));
+  await button(f.render(), 'Refresh record').props.onClick();
+  await settle();
+  const rendered = f.render();
+  assert.match(text(rendered), /Current value not retained/);
+  assert.match(text(rendered), /Does not match/);
+  const table = nodes(rendered).find((node) => node.type === 'table');
+  assert.ok(
+    !nodes(table).some(
+      (node) => node.type === 'DataValue' && node.props.value === 'Earlier readback',
+    ),
+  );
+  const raw = nodes(rendered).find(
+    (node) => node.type === 'details' && text(node).includes('Native response and observation'),
+  );
+  assert.match(text(raw), /earlier saved evidence, not the current response or readback/);
+  const payload = nodes(raw).find((node) => node.type === 'DataValue').props.value;
+  assert.equal(payload.observed.Description, 'Earlier readback');
+  assert.equal(payload.evidenceOmissions[0].previousRetained, true);
+  assert.equal(button(rendered, 'Export record').props.disabled, false);
+});

@@ -6,6 +6,7 @@ import { ApiError } from './upstream.js';
 import { z } from 'zod';
 
 const storedTimestamp = z.iso.datetime();
+export const workspaceRecordByteLimit = 4_000_000;
 
 export type WorkspaceIdentity = { owner: string; instance: string };
 export type StoredDocument = WorkspaceIdentity & {
@@ -60,7 +61,7 @@ export class WorkspaceStore {
     const path = this.path(actor, collection, id);
     try {
       const initial = await lstat(path);
-      if (!initial.isFile() || initial.isSymbolicLink() || initial.size > 4_000_000)
+      if (!initial.isFile() || initial.isSymbolicLink() || initial.size > workspaceRecordByteLimit)
         throw new Error('Invalid record file');
       const handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
       let data: Buffer;
@@ -78,14 +79,14 @@ export class WorkspaceStore {
         if (!current.isFile() || current.isSymbolicLink() || current.ino !== opened.ino)
           throw new Error('Record file was replaced');
         // Bound the actual descriptor read, including a file growing after lstat.
-        const buffer = Buffer.alloc(4_000_001);
+        const buffer = Buffer.alloc(workspaceRecordByteLimit + 1);
         let length = 0;
         while (length < buffer.length) {
           const read = await handle.read(buffer, length, buffer.length - length, null);
           if (!read.bytesRead) break;
           length += read.bytesRead;
         }
-        if (length > 4_000_000) throw new Error('Oversized record');
+        if (length > workspaceRecordByteLimit) throw new Error('Oversized record');
         data = buffer.subarray(0, length);
       } finally {
         await handle.close();
@@ -125,7 +126,7 @@ export class WorkspaceStore {
         throw new ApiError(409, 'This record changed. Refresh to review the latest version.');
     }
     const text = JSON.stringify(record);
-    if (Buffer.byteLength(text, 'utf8') > 4_000_000)
+    if (Buffer.byteLength(text, 'utf8') > workspaceRecordByteLimit)
       throw new ApiError(
         413,
         'This record reached its 4 MB storage limit. Export and start a new record.',
