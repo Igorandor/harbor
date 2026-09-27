@@ -1,6 +1,14 @@
 import { useState, type ReactNode } from 'react';
 import { label } from '../../shared/catalog';
-import { capacity, formatBytes, record, scalar, columnsFor, filterRows } from './data-model';
+import {
+  capacity,
+  formatBytes,
+  record,
+  ownField,
+  scalar,
+  columnsFor,
+  filterRows,
+} from './data-model';
 import './data-view.css';
 
 function Disclosure({ title, children }: { title: string; children: () => ReactNode }) {
@@ -145,7 +153,7 @@ export function DataTable({ rows }: { rows: unknown[] }) {
               <tr key={index}>
                 {columns.map((key) => (
                   <td key={key}>
-                    <DataValue value={record(row)[key]} field={key} />
+                    <DataValue value={ownField(row, key)} field={key} />
                   </td>
                 ))}
                 <td>
@@ -535,15 +543,18 @@ export function DataDiff({ before, after }: { before: unknown; after: unknown })
           </thead>
           <tbody>
             {keys
-              .filter((k) => !onlyChanged || JSON.stringify(a[k]) !== JSON.stringify(b[k]))
+              .filter(
+                (k) =>
+                  !onlyChanged || JSON.stringify(ownField(a, k)) !== JSON.stringify(ownField(b, k)),
+              )
               .map((k) => (
                 <tr key={k}>
                   <th scope="row">{label(k)}</th>
                   <td>
-                    <DataValue value={a[k]} field={k} />
+                    <DataValue value={ownField(a, k)} field={k} />
                   </td>
                   <td>
-                    <DataValue value={b[k]} field={k} />
+                    <DataValue value={ownField(b, k)} field={k} />
                   </td>
                 </tr>
               ))}

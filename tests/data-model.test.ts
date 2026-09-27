@@ -52,3 +52,20 @@ test('mixed native records retain fields missing in the first record', () => {
   assert.deepEqual(columnsFor([{ Name: 'a' }, { Name: 'b', Status: false }]), ['Name', 'Status']);
   assert.deepEqual(columnsFor([null, 'hello']), ['Value']);
 });
+
+for (const key of ['__proto__', 'constructor', 'toString']) {
+  test(`sorting ${key} treats an absent field as missing and preserves an own value`, () => {
+    const rows = [{ Name: 'Absent' }, JSON.parse(`{"Name":"Present","${key}":"Middle"}`)];
+    assert.deepEqual(columnsFor(rows), ['Name', key]);
+    assert.deepEqual(
+      filterRows(rows, '', key, false).map((value) => value.index),
+      [1, 0],
+    );
+    assert.deepEqual(
+      filterRows(rows, '', key, true).map((value) => value.index),
+      [0, 1],
+    );
+    assert.equal(Object.hasOwn(rows[0], key), false);
+    assert.equal(Object.hasOwn(rows[1], key), true);
+  });
+}

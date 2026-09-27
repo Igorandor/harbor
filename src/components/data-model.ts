@@ -3,6 +3,10 @@ export function record(value: unknown): Record<string, unknown> {
     ? (value as Record<string, unknown>)
     : { Value: value };
 }
+export function ownField(value: unknown, key: string): unknown {
+  const row = record(value);
+  return Object.hasOwn(row, key) ? row[key] : undefined;
+}
 export function scalar(value: unknown): string {
   if (value === undefined || value === null || value === '') return 'Not reported';
   return typeof value === 'object'
@@ -42,8 +46,8 @@ export function filterRows(rows: unknown[], query: string, sort: string, descend
     .filter(({ row }) => !needle || JSON.stringify(row)?.toLowerCase().includes(needle));
   if (sort)
     list.sort((a, b) => {
-      const x = record(a.row)[sort],
-        y = record(b.row)[sort];
+      const x = ownField(a.row, sort),
+        y = ownField(b.row, sort);
       return (
         (typeof x === 'number' && typeof y === 'number'
           ? x - y
