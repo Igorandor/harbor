@@ -11,7 +11,7 @@ The native extension in the bundled `%SYS` installation also requires database r
 - `npm run check`: build and all tests pass, including eight denial-body/status combinations in a new regression.
 - `npm run test:authorization`: creates a temporary role and account, confirms telemetry access with the two required resources, refuses an attempted security-privilege grant, checks the unchanged role, removes database read access and checks HTTP 403, then removes roles and verifies access denial through the existing gateway session and direct native extension. Cleanup removes the account/role and logs out. Run only on a disposable instance with the same environment variables as `test:install`.
 - The rebuilt local portal passes `test:install`; npm audit reports no known vulnerable dependencies at review time.
-- Tracked files and reachable Git history were checked for operational paths and common credential signatures. No matches were found; known local demo passwords remain explicitly documented. This pattern scan cannot recognize every possible secret.
+- Tracked files and reachable Git history were checked for operational paths and common credential signatures. No matches were found; published quick-start passwords remain explicitly documented. This pattern scan cannot recognize every possible secret.
 
 This review additionally inspected session/CSRF/origin checks, request allowlisting, redirect handling, response/history bounds, masking, native extension dispatch and the sibling projects' snapshot and runbook boundaries. No new authorization bypass was confirmed in that scope. It is not a container OS/IRIS vulnerability certification or an external identity-provider test.
 

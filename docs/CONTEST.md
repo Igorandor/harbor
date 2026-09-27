@@ -15,7 +15,7 @@ The application includes English installation instructions and a written demonst
 
 ## Technology bonuses
 
-The [published technology bonus list](https://community.intersystems.com/post/technology-bonuses-intersystems-programming-contest-build-your-own-management-portal) was reviewed. Harbor uses Docker and Embedded Python for a concrete purpose: native host telemetry and bounded log reads. It does not add vector search or an AI dependency merely to accumulate points.
+The [published technology bonus list](https://community.intersystems.com/post/technology-bonuses-intersystems-programming-contest-build-your-own-management-portal) was reviewed. Harbor uses Docker and Embedded Python for a concrete purpose: native host telemetry and bounded log reads.
 
 No claim is made for online hosting, published IPM packages, community ideas, articles, YouTube videos, first-time participation or reported vendor bugs. These require separate completed actions or eligibility checks.
 
@@ -29,7 +29,7 @@ No claim is made for online hosting, published IPM packages, community ideas, ar
 
 ### Suggested Open Exchange description
 
-Harbor is a focused administration workspace for InterSystems IRIS. It brings web applications, permissions, wallet secrets, X.509/TLS/OAuth configuration, scheduled tasks, host resources and operational logs into a consistent React interface. A same-origin Node gateway preserves the operator's IRIS privileges; reviewable changes, typed confirmations and conflict checks support everyday administration. The included Docker stack and protected Embedded Python extension provide a reproducible local installation with real telemetry and log data.
+Harbor is an administration portal for InterSystems IRIS. Inspect tasks, logs, processes and application settings, then save diagnostic captures and notes in an investigation. Compare captures and link them to recorded administrative changes. Editors show the requested changes before applying them with the operator's IRIS permissions. The repository includes a Docker installation and an ObjectScript/Embedded Python extension for host telemetry and log reads.
 
 ## Current review status
 
@@ -37,7 +37,7 @@ See [the latest authorization and readiness review](CONTEST_SECURITY_REVIEW.md).
 
 ## Developer Community article draft
 
-[ARTICLE.md](ARTICLE.md) contains an unpublished English feature walkthrough. Replace `YOUR_GITHUB_ACCOUNT` with the public repository owner, review the text, and publish it on Developer Community to request the article bonus. A file in this repository does not constitute a published Community article or an awarded bonus.
+[ARTICLE.md](ARTICLE.md) contains an unpublished English feature walkthrough. Review the draft and publish it on Developer Community to request the article bonus. A file in this repository does not constitute a published Community article or an awarded bonus.
 
 ## Original idea and current walkthrough
 

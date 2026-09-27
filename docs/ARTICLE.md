@@ -1,23 +1,23 @@
-# Harbor: keeping the evidence behind an IRIS administration decision
+# Investigating an IRIS task with Harbor
 
-A scheduled task is reported as slow. Its current configuration looks reasonable, but that alone does not explain what happened. An operator needs its execution state, recent history, system messages and resource observations, then a way to retain the evidence behind the next decision.
+When a scheduled task runs slowly, its execution history is a useful starting point. System messages and resource observations add context. Saving them together makes it possible to compare the incident with a later run.
 
-Harbor brings those activities into an administration workspace for InterSystems IRIS. Its distinguishing workflow is an investigation: a saved question with diagnostic captures, checklist decisions, notes, evidence comparisons and links to administrative change receipts. Opening an investigation does not change IRIS configuration.
+Harbor stores that work in an investigation: diagnostic captures, notes, a checklist and links to administrative changes. This walkthrough creates an investigation and compares two captures without changing IRIS configuration.
 
-The [source repository](https://github.com/YOUR_GITHUB_ACCOUNT/harbor) includes installation instructions, an operational guide and verification records. Development used AI assistance; implementation provenance and third-party attribution are documented in the repository.
+The [source repository](https://github.com/Igorandor/harbor) includes installation instructions, an operational guide and verification records. Development used AI assistance; implementation provenance and third-party attribution are documented in the repository.
 
 ## Run Harbor
 
 The supplied stack requires Docker with Compose v2 and Linux containers, at least 4 GB of available RAM and approximately 5 GB of free disk space.
 
 ```sh
-git clone https://github.com/YOUR_GITHUB_ACCOUNT/harbor.git
+git clone https://github.com/Igorandor/harbor.git
 cd harbor
 docker compose up -d --build
 docker compose ps
 ```
 
-Allow several minutes for the first build. Open `http://localhost:3100` and sign in as `SuperUser` with `HarborLocal-2026!`. These are public quick-start credentials for the bundled instance. Both published ports bind to loopback; keep this stack on your own machine. A shared deployment needs your own accounts, HTTPS and the settings in the [deployment guide](https://github.com/YOUR_GITHUB_ACCOUNT/harbor/blob/main/docs/DEPLOYMENT.md).
+Allow several minutes for the first build. Open `http://localhost:3100` and sign in as `SuperUser` with `HarborLocal-2026!`. These are public quick-start credentials for the bundled instance. Both published ports bind to loopback; keep this stack on your own machine. A shared deployment needs your own accounts, HTTPS and the settings in the [deployment guide](https://github.com/Igorandor/harbor/blob/main/docs/DEPLOYMENT.md).
 
 The bundled image pins IRIS Community 2026.2. Separate named volumes preserve IRIS data and Harbor's workflow records. `docker compose down` stops the stack without deleting those volumes; adding a volume-removal option would have a different effect.
 
@@ -49,6 +49,6 @@ The React and TypeScript client talks to a same-origin Node.js gateway using an 
 
 Saved investigations and receipts are partitioned by account and stable instance identity. They are not shared team cases or a replacement for native security audit. Storage supports one gateway writer. Native administrators can still race a final configuration check: the API contract does not provide an atomic conditional write.
 
-Captures and comparisons have explicit size and count bounds. Missing sources remain unknown, and a review conclusion remains an operator's assessment. The [operational guide](https://github.com/YOUR_GITHUB_ACCOUNT/harbor/blob/main/docs/OPERATIONS.md) describes these limits and recovery procedures.
+Captures and comparisons have explicit size and count bounds. Missing sources remain unknown, and a review conclusion remains an operator's assessment. The [operational guide](https://github.com/Igorandor/harbor/blob/main/docs/OPERATIONS.md) describes these limits and recovery procedures.
 
-At this revision, production builds and 312 Node tests pass. Verification includes synthetic security and failure scenarios, earlier native checks against IRIS Community, and desktop/mobile browser checks with their scope recorded separately. IRIS for Health and a complete external OAuth-provider integration have not been certified. See the [verification record](https://github.com/YOUR_GITHUB_ACCOUNT/harbor/blob/main/docs/VERIFICATION.md) for the evidence behind those statements.
+The September 27 checkpoint passed production builds and 312 Node tests. Verification includes synthetic security and failure scenarios, earlier native checks against IRIS Community, and desktop/mobile browser checks with their scope recorded separately. IRIS for Health and a complete external OAuth-provider integration remain unverified. See the [verification record](https://github.com/Igorandor/harbor/blob/main/docs/VERIFICATION.md) for the tested scenarios.

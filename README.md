@@ -1,6 +1,6 @@
 # Harbor for InterSystems IRIS
 
-Harbor brings applications, permissions, secrets, tasks, host resources and logs into one consistent interface. It talks to the real InterSystems SysAdmin v2 APIs. It does not replace IRIS authorization or simulate administrative results.
+Harbor is an administration portal for InterSystems IRIS. Inspect tasks, logs and configuration, save diagnostic captures in an investigation, and review changes before applying them through the SysAdmin v2 API.
 
 Built for the [InterSystems Programming Contest: Build Your Own Management Portal](https://community.intersystems.com/post/intersystems-programming-contest-build-your-own-management-portal).
 
@@ -28,7 +28,7 @@ Built for the [InterSystems Programming Contest: Build Your Own Management Porta
 
 Every editor has a separate review step. Deletions and execution controls require you to type the target identifier. Editing checks for changes made by another administrator before sending an update. Each accepted write has a durable receipt and an explicit verified, acknowledged or unresolved outcome. Native external edits can still race the final check; the API does not supply an atomic conditional write.
 
-Light and dark themes, keyboard navigation, a **Ctrl/Cmd+K** workspace switcher, responsive layouts, loading states, empty states and actionable errors are included. Fonts and icons are bundled locally.
+Use **Ctrl/Cmd+K** to switch tools. The interface supports keyboard navigation, phone layouts and light or dark themes. Fonts and icons are bundled locally.
 
 ## Quick start
 
@@ -171,3 +171,9 @@ See [Reading and editing native API data](docs/DATA_VIEWS.md) for interactive re
 Open Diagnostic bundle, choose the evidence sources and enter an optional investigation note. Select Capture selected sources. Inspect each source separately: collected, unavailable, pending and too large have different meanings. A partial capture is not a healthy-system verdict. Export bundle includes timestamps, limits and the note. The eight choices are identity, health, host capacity, processes, tasks, task history, journal files and recent messages. At most two native reads run together; each report section is capped at 200 KB. No IRIS configuration is changed.
 
 See [the original project idea](IDEA.md). The written walkthrough above is part of the contest demonstration. A music-only screen walkthrough with English captions has also been prepared for publication; see the [video publication kit](docs/VIDEO.md). No public video or hosted-demo URL is claimed.
+
+## Author
+
+[Igor Podlewski on Developer Community](https://community.intersystems.com/user/igor-podlewski) · [GitHub](https://github.com/Igorandor)
+
+Development used AI assistance. See [provenance](docs/PROVENANCE.md) for implementation history and attribution.

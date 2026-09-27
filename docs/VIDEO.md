@@ -20,7 +20,7 @@ Find a scheduled task, inspect its execution history and save an investigation n
 
 Recorded interactions with the running application, edited into short clips with original timing. English captions and instrumental music; no narration. The demonstrated workflow reads IRIS Community and stores review records in an isolated presentation workspace.
 
-Source and installation: https://github.com/YOUR_GITHUB_ACCOUNT/harbor
+Source and installation: https://github.com/Igorandor/harbor
 
 Companion article: add the published Developer Community URL.
 
