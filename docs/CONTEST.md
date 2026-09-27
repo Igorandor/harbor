@@ -33,7 +33,11 @@ Harbor is a focused administration workspace for InterSystems IRIS. It brings we
 
 ## Current review status
 
-See [the latest authorization and readiness review](CONTEST_SECURITY_REVIEW.md). Public repository publication, the Open Exchange listing, participant eligibility and organizer acceptance remain unconfirmed. The sibling projects currently reuse the Harbor administration foundation; this must be disclosed and is not a guarantee of separate acceptance. A requirement to remove that reused implementation is under review with the project owner.
+See [the latest authorization and readiness review](CONTEST_SECURITY_REVIEW.md). Public repository publication, the Open Exchange listing, participant eligibility and organizer acceptance remain unconfirmed. The earlier Harbor foundation was removed from the current Atlas and Waypoint application implementations. Each project now has an independent repository and runtime. Retained history, test ancestry and external references are disclosed in [provenance](PROVENANCE.md); separate contest acceptance remains the organizer's decision.
+
+## Developer Community article draft
+
+[ARTICLE.md](ARTICLE.md) contains an unpublished English feature walkthrough. Replace `YOUR_GITHUB_ACCOUNT` with the public repository owner, review the text, and publish it on Developer Community to request the article bonus. A file in this repository does not constitute a published Community article or an awarded bonus.
 
 ## Original idea and current walkthrough
 
