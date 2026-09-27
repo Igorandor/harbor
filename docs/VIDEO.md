@@ -22,7 +22,7 @@ Recorded interactions with the running application, edited into short clips with
 
 Source and installation: https://github.com/Igorandor/harbor
 
-Companion article: add the published Developer Community URL.
+Companion article: https://community.intersystems.com/post/investigating-iris-task-harbor
 
 Open Exchange: https://openexchange.intersystems.com/package/Harbor
 
@@ -32,10 +32,10 @@ Music is trimmed or looped, normalized and faded. See [MUSIC_LICENSES.md](MUSIC_
 
 ## Recording checklist (completed upload)
 
-1. Review the MP4 and captions. Repository links identify the published source; add article/application links when moderation assigns public URLs.
-2. Upload the individual film or use its chapter in the combined film. Review publication settings yourself. Multiple uploads do not necessarily multiply the contest bonus.
+1. The individual video, repository, Open Exchange application and Community article are published and linked. Do not repeat the upload.
+2. The individual film is unlisted and accessible by link. The combined film remains a local asset. Multiple uploads do not necessarily multiply the contest bonus.
 3. English SRT captions are supplied; short captions are already visible in the picture. Check for duplicate display when enabling subtitles.
-4. Verify the published video without signing in, then add its real URL to the Open Exchange YouTube field and repository README.
+4. The video URL is saved in the Open Exchange YouTube field and repository README; keep these links aligned if the video is replaced.
 
 ## Recorded clips
 

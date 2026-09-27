@@ -1,5 +1,9 @@
 # Contest coverage and submission preparation
 
+## Developer Community article
+
+The [Developer Community article](https://community.intersystems.com/post/investigating-iris-task-harbor) was published through the Community form on September 28, 2026. Its URL is attached to the Open Exchange application, and the description edits were sent for approval. [ARTICLE.md](ARTICLE.md) contains the source text. Final moderation and bonus decisions remain with the organizer.
+
 Source: [contest announcement](https://community.intersystems.com/post/intersystems-programming-contest-build-your-own-management-portal), accessed September 26, 2026.
 
 | Required area                 | Harbor implementation                                                         | Relevant APIs                                                                                                 |
@@ -22,7 +26,7 @@ The video is available through the link in [VIDEO.md](VIDEO.md). No bonus award 
 ## Submission follow-up
 
 1. Registration is visible on [contest 48](https://openexchange.intersystems.com/contest/48); check any subsequent moderator feedback.
-2. Finish Developer Community article moderation and add its public URL to the application.
+2. Check subsequent Community moderator feedback; the article URL is already attached to the application.
 3. Keep credentials and generated runtime data out of future commits.
 4. Confirm awarded bonuses with the organizer; upload or submission alone does not establish an award.
 
@@ -33,10 +37,6 @@ Harbor is an administration portal for InterSystems IRIS. Inspect tasks, logs, p
 ## Current review status
 
 See [the latest authorization and readiness review](CONTEST_SECURITY_REVIEW.md). The repository and Open Exchange application are public, and the application appears on the official contest list. Participant eligibility and organizer acceptance remain the organizer’s decision. The earlier Harbor foundation was removed from the current Atlas and Waypoint application implementations. Each project now has an independent repository and runtime. Retained history, test ancestry and external references are disclosed in [provenance](PROVENANCE.md); separate contest acceptance remains the organizer's decision.
-
-## Developer Community article draft
-
-[ARTICLE.md](ARTICLE.md) contains an unpublished English feature walkthrough. Review the draft and publish it on Developer Community to request the article bonus. A file in this repository does not constitute a published Community article or an awarded bonus.
 
 ## Original idea and current walkthrough
 
