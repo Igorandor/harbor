@@ -4,6 +4,8 @@ function sensitiveField(key: string): boolean {
   return /password|token|privatekey|secrets?$|walletsecretconfig|hotpkey/.test(normalized);
 }
 
+const booleanPolicyFields = new Set(['ChangePassword', 'PasswordNeverExpires', 'HOTPKeyDisplay']);
+
 /** Collect submitted secrets so an upstream diagnostic cannot echo them as free text. */
 export function credentialValues(value: unknown, sensitive = false): string[] {
   if (typeof value === 'string') return sensitive && value ? [value] : [];
@@ -29,7 +31,9 @@ export function redact(value: any, secrets: readonly string[] = []): any {
       return Object.fromEntries(
         Object.entries(item).map(([key, child]) => [
           key,
-          sensitiveField(key) ? '[redacted]' : visit(child),
+          sensitiveField(key) && !(typeof child === 'boolean' && booleanPolicyFields.has(key))
+            ? '[redacted]'
+            : visit(child),
         ]),
       );
     return typeof item === 'string' && pattern ? item.replace(pattern, () => '[redacted]') : item;
