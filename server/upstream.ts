@@ -148,8 +148,10 @@ export class IrisClient {
     private fetcher: typeof fetch = fetch,
   ) {}
 
-  async request(auth: string, op: Operation) {
+  async request(auth: string, op: Operation, callerSignal?: AbortSignal) {
     validateOperation(op);
+    const signal = op.method === 'GET' ? callerSignal : undefined;
+    if (signal?.aborted) throw new ApiError(499, 'The native read was cancelled.');
     const accountCount = this.accountActive.get(auth) ?? 0;
     if (this.active >= 16 || accountCount >= 8)
       throw new ApiError(
@@ -159,7 +161,7 @@ export class IrisClient {
     this.active++;
     this.accountActive.set(auth, accountCount + 1);
     try {
-      return await this.executeRequest(auth, op);
+      return await this.executeRequest(auth, op, signal);
     } finally {
       this.active--;
       const remaining = (this.accountActive.get(auth) ?? 1) - 1;
@@ -168,7 +170,7 @@ export class IrisClient {
     }
   }
 
-  private async executeRequest(auth: string, op: Operation) {
+  private async executeRequest(auth: string, op: Operation, callerSignal?: AbortSignal) {
     const extension = op.path.startsWith('/extension/');
 
     const url = new URL(
@@ -202,10 +204,13 @@ export class IrisClient {
           'Accept-Language': 'en',
         },
         body: body ? JSON.stringify(body) : undefined,
-        signal: AbortSignal.timeout(20000),
+        signal: callerSignal
+          ? AbortSignal.any([callerSignal, AbortSignal.timeout(20000)])
+          : AbortSignal.timeout(20000),
         redirect: 'error',
       });
     } catch {
+      if (callerSignal?.aborted) throw new ApiError(499, 'The native read was cancelled.');
       throw new ApiError(
         502,
         'The connection to IRIS failed or exceeded the 20-second timeout. Check the configured server and network. A write may have completed; refresh before trying again.',
@@ -232,6 +237,7 @@ export class IrisClient {
         text += decoder.decode();
       } catch (error) {
         if (error instanceof ApiError) throw error;
+        if (callerSignal?.aborted) throw new ApiError(499, 'The native read was cancelled.');
         throw new ApiError(
           502,
           'The IRIS response was interrupted. Refresh before retrying a write.',

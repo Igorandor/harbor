@@ -217,8 +217,19 @@ export function createApp(options: AppOptions) {
       op.query = { ...op.query, maxRows: '250' };
     const session: Session = res.locals.session,
       start = now();
+    // Only an ordinary browser GET owns cancellation. Durable change execution,
+    // readback and multi-source captures have separate completion requirements.
+    const readController = op.method === 'GET' ? new AbortController() : undefined;
+    const disconnected = () => {
+      if (!res.writableEnded) readController?.abort();
+    };
+    if (readController) {
+      res.once('close', disconnected);
+      if (res.destroyed) readController.abort();
+    }
     try {
-      const result = await client.request(session.auth, op);
+      const result = await client.request(session.auth, op, readController?.signal);
+      if (readController?.signal.aborted) return;
       if (op.method !== 'GET' || result.console?.length) {
         session.activity.unshift({
           at: new Date(now()).toISOString(),
@@ -231,8 +242,9 @@ export function createApp(options: AppOptions) {
         });
         session.activity.splice(100);
       }
-      res.json(result);
+      if (!res.destroyed) res.json(result);
     } catch (error) {
+      if (readController?.signal.aborted) return;
       session.activity.unshift({
         at: new Date(now()).toISOString(),
         method: op.method,
@@ -241,7 +253,10 @@ export function createApp(options: AppOptions) {
         elapsed: now() - start,
       });
       session.activity.splice(100);
+      if (res.destroyed) return;
       throw error;
+    } finally {
+      if (readController) res.off('close', disconnected);
     }
   });
   app.use('/api', (_req, _res, next) => next(new ApiError(404, 'Unknown portal endpoint.')));

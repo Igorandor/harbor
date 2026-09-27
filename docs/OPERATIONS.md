@@ -8,6 +8,8 @@ Signing in, signing out or receiving a current session rejection clears protecte
 
 If the browser does not support or allow `BroadcastChannel`, session handling still works in the current tab, but automatic clearing of other tabs is unavailable. Close or reload other Harbor tabs when changing accounts in that browser. Previously downloaded exports cannot be recalled.
 
+An ordinary native GET sent through `/api/iris` cancels its HTTP transport if the browser connection closes before the response finishes. The 20-second upstream deadline and 8 MB streamed-response limit still apply. Transport cancellation does not guarantee that IRIS has stopped work already started. This ownership rule does not apply to diagnostic batches, other observation routes, POST audit operations or durable change execution/readback; those keep their existing completion handling. Do not treat disconnecting as cancellation of a native change.
+
 ## Investigate a change
 
 1. Open **Investigations → New investigation**. Give the case a concrete question, severity and optional tags.

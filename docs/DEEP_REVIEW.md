@@ -1,5 +1,8 @@
 # Expanded correctness and security review
 
+
+> Historical checkpoint: this September 26 review predates the separation into independent applications and the Relay-to-Waypoint rename. References below to shared code or source parity describe that earlier state. For the current implementation and later checks, see [VERIFICATION.md](VERIFICATION.md).
+
 September 26, 2026. This review follows the user's request to keep investigating after fixes, instead of stopping after the first finding. It covers the three related portals, with the project-specific changes identified below. It is not proof that all possible defects are absent.
 
 ## Corrections
