@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Download, RefreshCw } from 'lucide-react';
-import { download, iris, request } from '../../api';
+import { download, iris, request, RequestError } from '../../api';
 import { useData } from '../../hooks';
 import { Badge, Details, Empty, ErrorBox, Loading, PageHeader, Value } from '../../components/ui';
 import {
@@ -344,7 +344,10 @@ function ApplicationDetail({
         if (live) setObservation(value);
       })
       .catch((caught) => {
-        if (live) setError((caught as Error).message);
+        if (live) {
+          if (caught instanceof RequestError && caught.status === 403) setObservation(undefined);
+          setError((caught as Error).message);
+        }
       })
       .finally(() => {
         if (live) setBusy(false);
@@ -551,7 +554,13 @@ function ServiceDetail({
         }
       })
       .catch((caught) => {
-        if (live) setError((caught as Error).message);
+        if (live) {
+          if (caught instanceof RequestError && caught.status === 403) {
+            setData(undefined);
+            setAt('');
+          }
+          setError((caught as Error).message);
+        }
       })
       .finally(() => {
         if (live) setBusy(false);

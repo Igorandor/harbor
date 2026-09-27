@@ -90,7 +90,7 @@ export function RuntimeWorkbench({ onManage }: { onManage: () => void }) {
     return () => clearInterval(timer);
   }, [follow, sources, pids]);
   const current = samples.find((item) => item.id === selected) ?? samples.at(-1),
-    prior = samples.find((item) => item.id === baseline);
+    prior = samples.find((item) => item.id === baseline && item.id !== current?.id);
   const index = current ? samples.findIndex((item) => item.id === current.id) : -1;
   const previous = prior?.sample ?? (index > 0 ? samples[index - 1].sample : undefined);
   const points = useMemo(
@@ -212,7 +212,13 @@ export function RuntimeWorkbench({ onManage }: { onManage: () => void }) {
           <section className="panel runtime-sample-selector">
             <label className="field">
               Sample
-              <select value={current.id} onChange={(event) => setSelected(event.target.value)}>
+              <select
+                value={current.id}
+                onChange={(event) => {
+                  setSelected(event.target.value);
+                  if (event.target.value === baseline) setBaseline('');
+                }}
+              >
                 {samples.map((item) => (
                   <option key={item.id} value={item.id}>
                     {new Date(item.sample.finishedAt).toLocaleString()}
@@ -222,7 +228,7 @@ export function RuntimeWorkbench({ onManage }: { onManage: () => void }) {
             </label>
             <label className="field">
               Comparison baseline
-              <select value={baseline} onChange={(event) => setBaseline(event.target.value)}>
+              <select value={prior?.id ?? ''} onChange={(event) => setBaseline(event.target.value)}>
                 <option value="">Previous sample</option>
                 {samples
                   .filter((item) => item.id !== current.id)
