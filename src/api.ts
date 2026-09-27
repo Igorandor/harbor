@@ -2,6 +2,35 @@ import type { RecordData } from '../shared/schema';
 import type { ChangeRecord } from '../shared/change-record';
 export type ApiResult<T = any> = { data: T; status: number; console: string[]; asyncId?: string };
 let csrf = '';
+let sessionGeneration = 0;
+const sessionMessage = 'session-changed';
+function openSessionChannel() {
+  if (typeof window === 'undefined' || typeof BroadcastChannel === 'undefined') return;
+  try {
+    return new BroadcastChannel('harbor-session');
+  } catch {
+    // Local session handling remains available when the browser disallows channels.
+    return;
+  }
+}
+const sessionChannel = openSessionChannel();
+
+function endSession(broadcast: boolean) {
+  sessionGeneration++;
+  csrf = '';
+  window.dispatchEvent(new Event('session-ended'));
+  if (broadcast) {
+    try {
+      sessionChannel?.postMessage(sessionMessage);
+    } catch {
+      // A failed peer notification must not turn successful sign-out into an error.
+    }
+  }
+}
+sessionChannel?.addEventListener('message', (event) => {
+  if (event.data === sessionMessage) endSession(false);
+});
+
 export class RequestError extends Error {
   constructor(
     message: string,
@@ -10,28 +39,44 @@ export class RequestError extends Error {
     super(message);
   }
 }
-export async function request<T = any>(path: string, body?: unknown): Promise<T> {
+function requireGeneration(generation: number) {
+  if (generation !== sessionGeneration)
+    throw new RequestError('The session changed. Sign in again before continuing.', 409);
+}
+async function sessionRequest<T = any>(
+  path: string,
+  body: unknown,
+  generation: number,
+): Promise<T> {
+  requireGeneration(generation);
   const response = await fetch('/api/' + path, {
     method: body === undefined ? 'GET' : 'POST',
     headers: body === undefined ? {} : { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+  requireGeneration(generation);
   let data: any;
   try {
     data = await response.json();
   } catch {
+    requireGeneration(generation);
+    if (response.status === 401 && path !== 'login') endSession(true);
     throw new RequestError(
       'The portal gateway returned an unreadable response. Check that the server is running and try again.',
       response.status,
     );
   }
+  requireGeneration(generation);
   if (!response.ok) {
-    if (response.status === 401 && path !== 'login' && path !== 'session')
-      window.dispatchEvent(new Event('session-ended'));
+    if (response.status === 401 && path !== 'login') endSession(true);
     throw new RequestError(data.error ?? 'Request failed.', response.status);
   }
+  if (path === 'login' || path === 'logout') endSession(true);
   if (data.csrf) csrf = data.csrf;
   return data;
+}
+export async function request<T = any>(path: string, body?: unknown): Promise<T> {
+  return sessionRequest<T>(path, body, sessionGeneration);
 }
 export async function iris<T = any>(
   path: string,
@@ -40,24 +85,37 @@ export async function iris<T = any>(
   body?: RecordData,
   expected?: Record<string, unknown>,
 ): Promise<ApiResult<T>> {
+  const generation = sessionGeneration;
   if (method !== 'GET' && path !== '/v2/security/audit/records') {
     const prepared = await prepareChange({ path, query, method, body }, expected);
+    requireGeneration(generation);
     const change = await executeChange(prepared);
+    requireGeneration(generation);
     return {
       data: change.result as T,
       status: change.nativeStatus ?? 200,
       console: [change.explanation],
     };
   }
-  const result = await request<ApiResult<T>>('iris', { path, method, query, body });
+  const result = await sessionRequest<ApiResult<T>>(
+    'iris',
+    { path, method, query, body },
+    generation,
+  );
+  requireGeneration(generation);
   if (result.asyncId) {
     for (let i = 0; i < 20; i++) {
       await new Promise((resolve) => setTimeout(resolve, 700));
-      const next = await request<ApiResult>('iris', {
-        path: '/v2/async-result',
-        method: 'GET',
-        query: { id: result.asyncId },
-      });
+      const next = await sessionRequest<ApiResult>(
+        'iris',
+        {
+          path: '/v2/async-result',
+          method: 'GET',
+          query: { id: result.asyncId },
+        },
+        generation,
+      );
+      requireGeneration(generation);
       if (next.data.State === 'Finished')
         return { ...next, data: next.data.Result, console: next.data.Console ?? [] };
       if (['Failed', 'Canceled', 'Paused'].includes(next.data.State))

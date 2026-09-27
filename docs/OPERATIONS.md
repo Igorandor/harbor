@@ -4,6 +4,10 @@ Harbor uses the signed-in account's native IRIS privileges. Saved operational re
 
 Linked change receipts are also part of a case's access requirements. Adding a link checks current access to its source, and later case reads and listings repeat that check. Losing access to any linked source hides the case until access is restored. Preserve linked receipts together with their cases during retention and recovery: a missing or unreadable receipt blocks access rather than exposing copied timeline metadata without its source check.
 
+Signing in, signing out or receiving a current session rejection clears protected views in other open Harbor tabs on the same origin through `BroadcastChannel`. Those tabs return to sign-in; they do not silently adopt another user's identity. Responses and automatic polling or change continuations from the old session cannot populate the new session. The notification contains no identity, credentials or operational data.
+
+If the browser does not support or allow `BroadcastChannel`, session handling still works in the current tab, but automatic clearing of other tabs is unavailable. Close or reload other Harbor tabs when changing accounts in that browser. Previously downloaded exports cannot be recalled.
+
 ## Investigate a change
 
 1. Open **Investigations → New investigation**. Give the case a concrete question, severity and optional tags.

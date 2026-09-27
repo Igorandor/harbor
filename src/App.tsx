@@ -90,13 +90,26 @@ export default function App() {
     [theme, setTheme] = useState(() => localStorage.getItem('harbor-theme') ?? 'light');
 
   useEffect(() => {
-    request('session')
-      .then(setSession)
-      .catch(() => {})
-      .finally(() => setChecking(false));
-    const expired = () => setSession(undefined);
+    let active = true,
+      invalidated = false;
+    const expired = () => {
+      invalidated = true;
+      setSession(undefined);
+      setChecking(false);
+    };
     window.addEventListener('session-ended', expired);
-    return () => window.removeEventListener('session-ended', expired);
+    request('session')
+      .then((value) => {
+        if (active && !invalidated) setSession(value);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setChecking(false);
+      });
+    return () => {
+      active = false;
+      window.removeEventListener('session-ended', expired);
+    };
   }, []);
 
   useEffect(() => {
