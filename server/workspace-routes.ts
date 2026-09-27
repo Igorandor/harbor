@@ -72,7 +72,17 @@ export function workspaceRoutes(
       );
     await cache.get(path);
   };
+  const changeAccess = async (res: express.Response, record: ChangeRecord) => {
+    await probe(res, familyProbe(record.path));
+  };
+  const linkedChangeAccess = async (res: express.Response, id: string) => {
+    // Read through the scoped store before checking current native access. A
+    // missing or unreadable source must not turn copied metadata into public data.
+    const record = await store.read<ChangeRecord>(actor(res), 'changes', id);
+    await changeAccess(res, record);
+  };
   const caseAccess = async (res: express.Response, record: Investigation) => {
+    for (const id of record.linkedChanges) await linkedChangeAccess(res, id);
     for (const capture of record.captures)
       for (const source of capture.bundle.sections)
         if (source.status === 'collected') {
@@ -97,8 +107,7 @@ export function workspaceRoutes(
     },
   );
   app.use('/api/changes/:id', async (req, res, next) => {
-    const record = await store.read<ChangeRecord>(actor(res), 'changes', String(req.params.id));
-    await probe(res, familyProbe(record.path));
+    await linkedChangeAccess(res, String(req.params.id));
     next();
   });
   app.use('/api/investigations/:id', async (req, res, next) => {
@@ -109,7 +118,7 @@ export function workspaceRoutes(
   app.get('/api/changes', async (_req, res) => {
     const list = await store.scan(actor(res), 'changes', async (record: ChangeRecord) => {
       try {
-        await probe(res, familyProbe(record.path));
+        await changeAccess(res, record);
         const { baseline, result, observation, fields, events, impact, ...summary } = record;
         return { ...summary, fieldCount: fields.length };
       } catch (error) {
@@ -220,6 +229,7 @@ export function workspaceRoutes(
       .object({ revision, changeId: z.string().uuid(), note: z.string().max(4000).default('') })
       .strict()
       .parse(req.body);
+    await linkedChangeAccess(res, input.changeId);
     res.json(
       await investigations.link(
         actor(res),

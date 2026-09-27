@@ -2,6 +2,8 @@
 
 Harbor uses the signed-in account's native IRIS privileges. Saved operational records belong to that account and a stable instance identity. They are not shared team records. Reopening a case or receipt checks current native access; a saved capture does not preserve revoked privileges.
 
+Linked change receipts are also part of a case's access requirements. Adding a link checks current access to its source, and later case reads and listings repeat that check. Losing access to any linked source hides the case until access is restored. Preserve linked receipts together with their cases during retention and recovery: a missing or unreadable receipt blocks access rather than exposing copied timeline metadata without its source check.
+
 ## Investigate a change
 
 1. Open **Investigations → New investigation**. Give the case a concrete question, severity and optional tags.
