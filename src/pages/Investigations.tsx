@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Download, FilePlus2, Search, RefreshCw, Camera, X } from 'lucide-react';
 import { request, download } from '../api';
 import { ErrorBox, Loading, Modal, PageHeader } from '../components/ui';
@@ -23,49 +23,76 @@ export function Investigations() {
     [error, setError] = useState('');
   const [query, setQuery] = useState(''),
     [status, setStatus] = useState('active');
-  async function load() {
+  const pending = useRef(false),
+    generation = useRef(0);
+  function begin() {
+    // The ref also rejects clicks queued before React renders disabled controls.
+    if (pending.current) return;
+    pending.current = true;
     setBusy(true);
     setError('');
+    return ++generation.current;
+  }
+  function finish(requestGeneration: number) {
+    if (requestGeneration !== generation.current) return;
+    pending.current = false;
+    setBusy(false);
+  }
+  async function load() {
+    const requestGeneration = begin();
+    if (requestGeneration === undefined) return;
     try {
-      setListing(await request<Listing>('investigations'));
+      const value = await request<Listing>('investigations');
+      if (requestGeneration === generation.current) setListing(value);
     } catch (error) {
-      setError((error as Error).message);
+      if (requestGeneration === generation.current) setError((error as Error).message);
     } finally {
-      setBusy(false);
+      finish(requestGeneration);
     }
   }
   useEffect(() => {
     void load();
+    return () => {
+      ++generation.current;
+      pending.current = false;
+    };
   }, []);
   async function inspect(id: string) {
-    setBusy(true);
-    setError('');
+    const requestGeneration = begin();
+    if (requestGeneration === undefined) return;
     try {
-      setSelected(await request<Investigation>('investigations/' + id));
+      const value = await request<Investigation>('investigations/' + id);
+      if (requestGeneration === generation.current) setSelected(value);
     } catch (error) {
-      setError((error as Error).message);
+      if (requestGeneration === generation.current) setError((error as Error).message);
     } finally {
-      setBusy(false);
+      finish(requestGeneration);
     }
   }
   async function change(action: string, input: Record<string, unknown>) {
     if (!selected) return false;
-    setBusy(true);
-    setError('');
+    const requestGeneration = begin();
+    if (requestGeneration === undefined) return false;
     try {
-      setSelected(
-        await request<Investigation>('investigations/' + selected.id + '/' + action, {
-          ...input,
-          revision: selected.revision,
-        }),
-      );
-      setListing(await request<Listing>('investigations'));
+      const value = await request<Investigation>('investigations/' + selected.id + '/' + action, {
+        ...input,
+        revision: selected.revision,
+      });
+      if (requestGeneration !== generation.current) return true;
+      setSelected(value);
+      try {
+        const refreshed = await request<Listing>('investigations');
+        if (requestGeneration === generation.current) setListing(refreshed);
+      } catch (error) {
+        if (requestGeneration === generation.current)
+          setError('Investigation saved. Could not refresh the list: ' + (error as Error).message);
+      }
       return true;
     } catch (error) {
-      setError((error as Error).message);
+      if (requestGeneration === generation.current) setError((error as Error).message);
       return false;
     } finally {
-      setBusy(false);
+      finish(requestGeneration);
     }
   }
   const records = (listing?.records ?? []).filter(
@@ -87,7 +114,13 @@ export function Investigations() {
         <button disabled={busy} onClick={() => void load()}>
           <RefreshCw size={16} /> Refresh
         </button>
-        <button className="primary" onClick={() => setCreating(true)}>
+        <button
+          className="primary"
+          disabled={busy}
+          onClick={() => {
+            if (!pending.current) setCreating(true);
+          }}
+        >
           <FilePlus2 size={16} /> New investigation
         </button>
       </PageHeader>
@@ -123,6 +156,7 @@ export function Investigations() {
           {records.map((record) => (
             <button
               key={record.id}
+              disabled={busy}
               className={'record-choice ' + (selected?.id === record.id ? 'active' : '')}
               onClick={() => void inspect(record.id)}
             >
@@ -147,7 +181,9 @@ export function Investigations() {
             busy={busy}
             onChange={change}
             onRefresh={() => void inspect(selected.id)}
-            onClose={() => setSelected(undefined)}
+            onClose={() => {
+              if (!pending.current) setSelected(undefined);
+            }}
           />
         ) : (
           <section className="panel record-workbench">
@@ -310,7 +346,7 @@ function CaseDetail({
           <h2>{record.title}</h2>
           <p>{record.description}</p>
         </div>
-        <button aria-label="Close investigation" onClick={onClose}>
+        <button aria-label="Close investigation" disabled={busy} onClick={onClose}>
           <X size={16} />
         </button>
       </div>
@@ -342,6 +378,7 @@ function CaseDetail({
         ].map(([id, label]) => (
           <button
             key={id}
+            disabled={busy}
             aria-pressed={view === id}
             className={view === id ? 'active' : ''}
             onClick={() => setView(id)}
@@ -364,13 +401,15 @@ function CaseDetail({
               className="record-actions"
               onSubmit={async (event) => {
                 event.preventDefault();
-                if (await onChange('notes', { text: note })) setNote('');
+                if (await onChange('notes', { text: note }))
+                  setNote((current) => (current === note ? '' : current));
               }}
             >
               <label className="field">
                 Add a note
                 <textarea
                   required
+                  disabled={busy}
                   maxLength={4000}
                   rows={4}
                   value={note}
@@ -416,7 +455,7 @@ function CaseDetail({
               onSubmit={async (event) => {
                 event.preventDefault();
                 if (await onChange('captures', { title: captureTitle, sources }))
-                  setCaptureTitle('');
+                  setCaptureTitle((current) => (current === captureTitle ? '' : current));
               }}
             >
               <h3>Capture current data</h3>
@@ -424,6 +463,7 @@ function CaseDetail({
                 Capture title
                 <input
                   required
+                  disabled={busy}
                   maxLength={120}
                   value={captureTitle}
                   onChange={(event) => setCaptureTitle(event.target.value)}
@@ -435,6 +475,7 @@ function CaseDetail({
                   <label key={source.id}>
                     <input
                       type="checkbox"
+                      disabled={busy}
                       checked={sources.includes(source.id)}
                       onChange={(event) =>
                         setSources(
@@ -490,7 +531,8 @@ function CaseDetail({
           className="record-actions"
           onSubmit={async (event) => {
             event.preventDefault();
-            if (await onChange('status', { status: nextStatus, reason: note })) setNote('');
+            if (await onChange('status', { status: nextStatus, reason: note }))
+              setNote((current) => (current === note ? '' : current));
           }}
         >
           <h3>Change investigation status</h3>
@@ -502,6 +544,7 @@ function CaseDetail({
             New status
             <select
               value={nextStatus}
+              disabled={busy}
               onChange={(event) => setNextStatus(event.target.value as Investigation['status'])}
             >
               {caseStatus
@@ -515,6 +558,7 @@ function CaseDetail({
             Reason or resolution
             <textarea
               required
+              disabled={busy}
               rows={4}
               maxLength={4000}
               value={note}
@@ -547,8 +591,8 @@ function CaseDetail({
               onSubmit={async (event) => {
                 event.preventDefault();
                 if (await onChange('changes', { changeId, note })) {
-                  setChangeId('');
-                  setNote('');
+                  setChangeId((current) => (current === changeId ? '' : current));
+                  setNote((current) => (current === note ? '' : current));
                 }
               }}
             >
@@ -556,6 +600,7 @@ function CaseDetail({
                 Change record ID
                 <input
                   required
+                  disabled={busy}
                   value={changeId}
                   onChange={(event) => setChangeId(event.target.value)}
                   maxLength={36}
@@ -564,6 +609,7 @@ function CaseDetail({
               <label className="field">
                 Context
                 <textarea
+                  disabled={busy}
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
                   maxLength={4000}

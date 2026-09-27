@@ -344,6 +344,7 @@ export function Editor({
     [busy, setBusy] = useState(false),
     [discover, setDiscover] = useState(true);
   const [prepared, setPrepared] = useState<ChangeRecord>();
+  const [reviewInvalidated, setReviewInvalidated] = useState(false);
   const payload = Object.fromEntries(
     Object.entries(form).filter(
       ([k, v]) =>
@@ -390,6 +391,7 @@ export function Editor({
           : undefined,
       );
       setPrepared(review);
+      setReviewInvalidated(false);
       setStep('review');
     } catch (e) {
       setError((e as Error).message);
@@ -398,7 +400,7 @@ export function Editor({
     }
   }
   async function save() {
-    if (!prepared) return;
+    if (!prepared || reviewInvalidated) return;
     setBusy(true);
     setError('');
     try {
@@ -406,13 +408,15 @@ export function Editor({
       onSaved();
     } catch (error) {
       setError((error as Error).message);
-      setPrepared(undefined);
+      // Keep the exact reviewed values visible, but never reuse a ticket after
+      // an unsuccessful or ambiguous execution request.
+      setReviewInvalidated(true);
     } finally {
       setBusy(false);
     }
   }
   async function back() {
-    if (prepared) {
+    if (prepared && !reviewInvalidated) {
       try {
         await request('changes/' + prepared.id + '/cancel', { revision: prepared.revision });
       } catch {
@@ -420,6 +424,7 @@ export function Editor({
       }
     }
     setPrepared(undefined);
+    setReviewInvalidated(false);
     setStep('edit');
   }
 
@@ -452,98 +457,100 @@ export function Editor({
             void prepare();
           }}
         >
-          <div className="modal-body form-grid">
-            {!editing && needIdentity && (
-              <div className="field full">
-                <label htmlFor="record-name">
-                  {entity.id === 'secrets' ? 'Full secret name (collection.name)' : 'Name'}
+          <fieldset disabled={busy} className="editor-fields">
+            <div className="modal-body form-grid">
+              {!editing && needIdentity && (
+                <div className="field full">
+                  <label htmlFor="record-name">
+                    {entity.id === 'secrets' ? 'Full secret name (collection.name)' : 'Name'}
+                  </label>
+                  <input
+                    id="record-name"
+                    required
+                    autoFocus
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+              )}
+
+              {entity.id === 'users' && !editing && (
+                <div className="field full">
+                  <label htmlFor="new-password">Initial password</label>
+                  <input
+                    id="new-password"
+                    required
+                    type="password"
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+              )}
+
+              {entity.id === 'oauthServers' && !editing && (
+                <label className="checkbox full">
+                  <input
+                    type="checkbox"
+                    checked={discover}
+                    onChange={(e) => setDiscover(e.target.checked)}
+                  />{' '}
+                  Discover OAuth metadata from the issuer URL
                 </label>
-                <input
-                  id="record-name"
-                  required
-                  autoFocus
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
+              )}
+              {fields.map((key) =>
+                key === 'WalletSecretConfig' && form.Type === '%Wallet.KeyValue' ? (
+                  <WalletConfig
+                    key={key}
+                    value={form[key] ?? { RequireTLS: true, Usage: ['HTTP'] }}
+                    onChange={(value) => setForm({ ...form, [key]: value })}
+                  />
+                ) : (
+                  <Field
+                    key={key}
+                    name={key}
+                    schema={props[key]}
+                    value={form[key]}
+                    onChange={(value) =>
+                      setForm({
+                        ...form,
+                        [key]: value,
+                        ...(entity.id === 'secrets' && key === 'Type'
+                          ? { WalletSecretConfig: {} }
+                          : {}),
+                      })
+                    }
+                  />
+                ),
+              )}
+              <div className="field full advanced-field">
+                <label htmlFor="additional-property">Additional setting</label>
+                <select
+                  id="additional-property"
+                  value=""
+                  onChange={(e) => setFields([...fields, e.target.value])}
+                >
+                  <option value="">Add a setting from the IRIS schema…</option>
+                  {Object.keys(props)
+                    .filter((k) => !fields.includes(k) && !props[k].readOnly)
+                    .map((k) => (
+                      <option key={k} value={k}>
+                        {label(k)}
+                      </option>
+                    ))}
+                </select>
               </div>
-            )}
-
-            {entity.id === 'users' && !editing && (
-              <div className="field full">
-                <label htmlFor="new-password">Initial password</label>
-                <input
-                  id="new-password"
-                  required
-                  type="password"
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-            )}
-
-            {entity.id === 'oauthServers' && !editing && (
-              <label className="checkbox full">
-                <input
-                  type="checkbox"
-                  checked={discover}
-                  onChange={(e) => setDiscover(e.target.checked)}
-                />{' '}
-                Discover OAuth metadata from the issuer URL
-              </label>
-            )}
-            {fields.map((key) =>
-              key === 'WalletSecretConfig' && form.Type === '%Wallet.KeyValue' ? (
-                <WalletConfig
-                  key={key}
-                  value={form[key] ?? { RequireTLS: true, Usage: ['HTTP'] }}
-                  onChange={(value) => setForm({ ...form, [key]: value })}
-                />
-              ) : (
-                <Field
-                  key={key}
-                  name={key}
-                  schema={props[key]}
-                  value={form[key]}
-                  onChange={(value) =>
-                    setForm({
-                      ...form,
-                      [key]: value,
-                      ...(entity.id === 'secrets' && key === 'Type'
-                        ? { WalletSecretConfig: {} }
-                        : {}),
-                    })
-                  }
-                />
-              ),
-            )}
-            <div className="field full advanced-field">
-              <label htmlFor="additional-property">Additional setting</label>
-              <select
-                id="additional-property"
-                value=""
-                onChange={(e) => setFields([...fields, e.target.value])}
-              >
-                <option value="">Add a setting from the IRIS schema…</option>
-                {Object.keys(props)
-                  .filter((k) => !fields.includes(k) && !props[k].readOnly)
-                  .map((k) => (
-                    <option key={k} value={k}>
-                      {label(k)}
-                    </option>
-                  ))}
-              </select>
             </div>
-          </div>
 
-          <footer>
-            <button type="button" onClick={onClose}>
-              Cancel
-            </button>
-            <button className="primary" type="submit" disabled={busy}>
-              {busy ? 'Preparing review…' : 'Review changes'} <ArrowRight size={16} />
-            </button>
-          </footer>
+            <footer>
+              <button type="button" onClick={onClose}>
+                Cancel
+              </button>
+              <button className="primary" type="submit" disabled={busy}>
+                {busy ? 'Preparing review…' : 'Review changes'} <ArrowRight size={16} />
+              </button>
+            </footer>
+          </fieldset>
         </form>
       ) : (
         <>
@@ -556,9 +563,9 @@ export function Editor({
               Secret values are hidden in this review.
             </div>
             <div className="review-target">
-              <span>{method}</span>
-              <code>{path}</code>
-              <strong>{name}</strong>
+              <span>{prepared?.method}</span>
+              <code>{prepared?.path}</code>
+              <strong>{prepared?.target}</strong>
             </div>
             <table className="diff">
               <thead>
@@ -569,26 +576,25 @@ export function Editor({
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(payload).map(([k, v]) => (
-                  <tr key={k}>
-                    <td>{label(k)}</td>
+                {prepared?.fields.map((field) => (
+                  <tr key={field.name}>
+                    <td>{label(field.name)}</td>
                     <td>
-                      {sensitive(k) ? (
+                      {!field.readable ? (
                         'Hidden'
                       ) : (
-                        <DataValue value={redact(initial?.[k])} field={k} />
+                        <DataValue value={redact(field.before)} field={field.name} />
                       )}
                     </td>
-                    <td>{sensitive(k) ? '••••••••' : <DataValue value={redact(v)} field={k} />}</td>
+                    <td>
+                      {!field.readable ? (
+                        '••••••••'
+                      ) : (
+                        <DataValue value={redact(field.requested)} field={field.name} />
+                      )}
+                    </td>
                   </tr>
                 ))}
-                {password && (
-                  <tr>
-                    <td>Initial password</td>
-                    <td>Not set</td>
-                    <td>••••••••</td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
@@ -596,7 +602,11 @@ export function Editor({
             <button disabled={busy} onClick={() => void back()}>
               <ArrowLeft size={16} /> Back
             </button>
-            <button className="primary" disabled={busy || !prepared} onClick={save}>
+            <button
+              className="primary"
+              disabled={busy || !prepared || reviewInvalidated}
+              onClick={save}
+            >
               {busy ? 'Applying…' : 'Apply changes'} <Check size={16} />
             </button>
           </footer>
