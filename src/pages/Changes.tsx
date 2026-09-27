@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Download, RefreshCw, Search, X, CheckCircle2, AlertTriangle, Clock3 } from 'lucide-react';
-import { download, request } from '../api';
+import { download, executeChange, request } from '../api';
 import { DataValue } from '../components/DataView';
 import { ChangeImpact } from '../components/ChangeImpact';
 import { ErrorBox, Loading, PageHeader } from '../components/ui';
@@ -23,7 +23,11 @@ export function Changes() {
     [error, setError] = useState('');
   const [busy, setBusy] = useState(false),
     [confirmation, setConfirmation] = useState('');
+  const pending = useRef(false);
+  const [awaitingRead, setAwaitingRead] = useState<string>();
   async function load() {
+    if (pending.current) return;
+    pending.current = true;
     setBusy(true);
     setError('');
     try {
@@ -31,6 +35,7 @@ export function Changes() {
     } catch (error) {
       setError((error as Error).message);
     } finally {
+      pending.current = false;
       setBusy(false);
     }
   }
@@ -38,32 +43,53 @@ export function Changes() {
     void load();
   }, []);
   async function inspect(id: string) {
+    if (pending.current) return;
+    pending.current = true;
     setBusy(true);
     setError('');
     setConfirmation('');
     try {
       setSelected(await request<ChangeRecord>('changes/' + id));
+      setAwaitingRead((current) => (current === id ? undefined : current));
     } catch (error) {
       setError((error as Error).message);
     } finally {
+      pending.current = false;
       setBusy(false);
     }
   }
   async function act(action: 'execute' | 'cancel' | 'reconcile') {
-    if (!selected) return;
+    if (!selected || pending.current || awaitingRead === selected.id) return;
+    if (action === 'execute' && confirmation !== selected.target) return;
+    const record = selected;
+    pending.current = true;
     setBusy(true);
     setError('');
     try {
-      const result = await request<ChangeRecord>('changes/' + selected.id + '/' + action, {
-        revision: selected.revision,
-        ...(action === 'execute' ? { confirmation } : {}),
-      });
+      const result =
+        action === 'execute'
+          ? await executeChange(record)
+          : await request<ChangeRecord>('changes/' + record.id + '/' + action, {
+              revision: record.revision,
+            });
       setSelected(result);
       setConfirmation('');
-      setListing(await request<Listing>('changes'));
+      try {
+        setListing(await request<Listing>('changes'));
+      } catch (error) {
+        setError(
+          'The change record was received, but the list could not refresh: ' +
+            (error as Error).message,
+        );
+      }
     } catch (error) {
       setError((error as Error).message);
+      if (action === 'execute') {
+        setAwaitingRead(record.id);
+        setConfirmation('');
+      }
     } finally {
+      pending.current = false;
       setBusy(false);
     }
   }
@@ -123,6 +149,7 @@ export function Changes() {
           {rows.map((record) => (
             <button
               key={record.id}
+              disabled={busy}
               className={'record-choice ' + (selected?.id === record.id ? 'active' : '')}
               onClick={() => void inspect(record.id)}
             >
@@ -146,7 +173,13 @@ export function Changes() {
                   <h2>{selected.title}</h2>
                   <code>{selected.target}</code>
                 </div>
-                <button onClick={() => setSelected(undefined)} aria-label="Close change details">
+                <button
+                  disabled={busy}
+                  onClick={() => {
+                    if (!pending.current) setSelected(undefined);
+                  }}
+                  aria-label="Close change details"
+                >
                   <X size={16} />
                 </button>
               </div>
@@ -158,6 +191,13 @@ export function Changes() {
               <p className={changeNeedsAttention(selected) ? 'notice warning' : 'notice'}>
                 {selected.explanation}
               </p>
+              {awaitingRead === selected.id && (
+                <p className="notice warning">
+                  This view is awaiting confirmation of the execution response. The displayed record
+                  predates that attempt. Use Refresh record to read its stored result before
+                  continuing.
+                </p>
+              )}
               {selected.impact && <ChangeImpact impact={selected.impact} />}
               <dl className="record-facts">
                 <div>
@@ -174,7 +214,11 @@ export function Changes() {
                 </div>
                 <div>
                   <dt>Native response</dt>
-                  <dd>{selected.nativeStatus ?? 'Not sent'}</dd>
+                  <dd>
+                    {awaitingRead === selected.id
+                      ? 'Awaiting record refresh'
+                      : (selected.nativeStatus ?? 'Not sent')}
+                  </dd>
                 </div>
                 <div>
                   <dt>Record</dt>
@@ -224,7 +268,7 @@ export function Changes() {
                   </table>
                 </div>
               ) : null}
-              {selected.state === 'prepared' ? (
+              {selected.state === 'prepared' && awaitingRead !== selected.id ? (
                 <div className="record-actions">
                   <p>
                     Type <strong>{selected.target}</strong> to send this reviewed request once. The
@@ -252,7 +296,7 @@ export function Changes() {
                   </div>
                 </div>
               ) : null}
-              {['uncertain', 'sending'].includes(selected.state) ? (
+              {['uncertain', 'sending'].includes(selected.state) && awaitingRead !== selected.id ? (
                 <div className="record-actions">
                   <p>
                     Read current state to check this result. This action sends no configuration
@@ -268,6 +312,7 @@ export function Changes() {
                   <RefreshCw size={16} /> Refresh record
                 </button>
                 <button
+                  disabled={busy || awaitingRead === selected.id}
                   onClick={() => download('harbor-change-' + selected.id + '.json', selected)}
                 >
                   <Download size={16} /> Export record

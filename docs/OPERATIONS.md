@@ -40,6 +40,8 @@ Each edit creates a new profile revision with a reason. Starting an investigatio
 
 Harbor prepares changes before sending them. A durable record is saved before dispatch; duplicate dispatches are refused. The gateway serializes its own writes to the same canonical target. This is not a lock held inside IRIS, so another native administrator can still act between the read and write.
 
+If the browser loses an execution response, the request may already have reached IRIS. Preserve the record ID shown in the error and use **Read change record** or **Change history → Refresh record** before continuing. This lookup reads the journal and does not execute the operation again. “Awaiting confirmation” in Change history describes the browser's stale view, not a new server receipt state. A failed lookup keeps the execution controls blocked. Editor retains its draft with Back, but continuation after an execution error takes place in Change history; it does not prepare another ticket from that same editor. A received successful result remains visible even if refreshing the surrounding list fails.
+
 Inspect the receipt state:
 
 | State              | Meaning and next action                                                                                                                |

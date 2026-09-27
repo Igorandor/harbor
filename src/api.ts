@@ -143,10 +143,27 @@ export async function prepareChange(
   return request<ChangeRecord>('changes', { operation, expected });
 }
 export async function executeChange(prepared: ChangeRecord): Promise<ChangeRecord> {
-  const change = await request<ChangeRecord>('changes/' + prepared.id + '/execute', {
-    revision: prepared.revision,
-    confirmation: prepared.target,
-  });
+  let change: ChangeRecord;
+  try {
+    change = await request<ChangeRecord>('changes/' + prepared.id + '/execute', {
+      revision: prepared.revision,
+      confirmation: prepared.target,
+    });
+  } catch (error) {
+    if (
+      error instanceof TypeError ||
+      (error instanceof RequestError &&
+        (error.status >= 500 || (error.status >= 200 && error.status < 300)))
+    )
+      throw new RequestError(
+        'The execution response could not be confirmed. The request may have reached IRIS. ' +
+          'Read record ' +
+          prepared.id +
+          ' in Change history before retrying or preparing another change.',
+        error instanceof RequestError ? error.status : 0,
+      );
+    throw error;
+  }
   window.dispatchEvent(new CustomEvent('change-recorded', { detail: change }));
   if (!['verified', 'acknowledged'].includes(change.state))
     throw new RequestError(

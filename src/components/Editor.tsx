@@ -345,6 +345,7 @@ export function Editor({
     [discover, setDiscover] = useState(true);
   const [prepared, setPrepared] = useState<ChangeRecord>();
   const [reviewInvalidated, setReviewInvalidated] = useState(false);
+  const [recovery, setRecovery] = useState<{ id: string; record?: ChangeRecord }>();
   const payload = Object.fromEntries(
     Object.entries(form).filter(
       ([k, v]) =>
@@ -360,6 +361,7 @@ export function Editor({
   );
 
   async function prepare() {
+    if (busy || recovery) return;
     setBusy(true);
     setError('');
 
@@ -411,6 +413,20 @@ export function Editor({
       // Keep the exact reviewed values visible, but never reuse a ticket after
       // an unsuccessful or ambiguous execution request.
       setReviewInvalidated(true);
+      setRecovery({ id: prepared.id });
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function readRecovery() {
+    if (!recovery || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const record = await request<ChangeRecord>('changes/' + recovery.id);
+      setRecovery({ id: recovery.id, record });
+    } catch (error) {
+      setError((error as Error).message);
     } finally {
       setBusy(false);
     }
@@ -444,6 +460,37 @@ export function Editor({
       </div>
 
       {error && <ErrorBox error={error} />}
+      {recovery && (
+        <div className="notice warning">
+          <p>
+            Execution was attempted for record <code>{recovery.id}</code>. Read its stored result
+            before preparing another change. Your draft remains available with Back.
+          </p>
+          {recovery.record && (
+            <p>
+              Stored state: <strong>{recovery.record.state}</strong>. {recovery.record.explanation}
+            </p>
+          )}
+          <div className="inline-actions">
+            <button disabled={busy} onClick={() => void readRecovery()}>
+              Read change record
+            </button>
+            <button
+              disabled={busy}
+              onClick={() => {
+                onClose();
+                window.location.hash = 'changes';
+              }}
+            >
+              Open Change history
+            </button>
+          </div>
+          <p>
+            Continue from Change history to inspect or reconcile this record. No request is sent
+            again here.
+          </p>
+        </div>
+      )}
 
       {step === 'edit' ? (
         <form
@@ -546,7 +593,7 @@ export function Editor({
               <button type="button" onClick={onClose}>
                 Cancel
               </button>
-              <button className="primary" type="submit" disabled={busy}>
+              <button className="primary" type="submit" disabled={busy || !!recovery}>
                 {busy ? 'Preparing review…' : 'Review changes'} <ArrowRight size={16} />
               </button>
             </footer>
