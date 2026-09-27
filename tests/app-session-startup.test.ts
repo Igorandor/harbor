@@ -48,7 +48,7 @@ const compiled = build({
           loader: 'js',
           contents:
             args.path === 'react'
-              ? 'export const useState=(...a)=>globalThis.fixture.useState(...a);export const useEffect=(...a)=>globalThis.fixture.useEffect(...a);'
+              ? 'export const useState=(...a)=>globalThis.fixture.useState(...a);export const useEffect=(...a)=>globalThis.fixture.useEffect(...a);export const useRef=(current)=>({current});'
               : args.path === 'react/jsx-runtime'
                 ? 'export const jsx=(type,props)=>({type,props});export const jsxs=jsx;export const Fragment="Fragment";'
                 : args.path === './api'

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   Activity,
@@ -50,14 +50,29 @@ import { RuntimeWorkbench } from './pages/RuntimeWorkbench';
 import { InvestigationProfiles } from './pages/InvestigationProfiles';
 
 const navigation = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'apps', label: 'Web applications', icon: Globe },
-  { id: 'permissions', label: 'Access & permissions', icon: Users },
-  { id: 'security', label: 'Security & secrets', icon: Shield },
-  { id: 'tasks', label: 'Scheduled tasks', icon: Workflow },
-  { id: 'system', label: 'System resources', icon: Server },
-  { id: 'logs', label: 'Logs & activity', icon: Activity },
-  { id: 'explorer', label: 'REST explorer', icon: BookOpen },
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard, keywords: 'dashboard health uptime' },
+  { id: 'apps', label: 'Web applications', icon: Globe, keywords: 'routes authentication' },
+  { id: 'permissions', label: 'Access & permissions', icon: Users, keywords: 'users roles grants' },
+  {
+    id: 'security',
+    label: 'Security & secrets',
+    icon: Shield,
+    keywords: 'wallet certificates tls ssl oauth',
+  },
+  { id: 'tasks', label: 'Scheduled tasks', icon: Workflow, keywords: 'schedule jobs' },
+  {
+    id: 'system',
+    label: 'System resources',
+    icon: Server,
+    keywords: 'processes devices databases cpu memory disk',
+  },
+  {
+    id: 'logs',
+    label: 'Logs & activity',
+    icon: Activity,
+    keywords: 'messages alerts audit history',
+  },
+  { id: 'explorer', label: 'REST explorer', icon: BookOpen, keywords: 'api endpoints requests' },
   { id: 'diagnostics', label: 'Diagnostic bundle', icon: Activity },
   { id: 'changes', label: 'Change history', icon: Check },
   { id: 'investigations', label: 'Investigations', icon: Search },
@@ -400,12 +415,22 @@ function CommandMenu({
   onClose: () => void;
 }) {
   const [search, setSearch] = useState('');
+  const searchInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    searchInput.current?.focus();
+  }, []);
+  const terms = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const matches = navigation.filter((item) => {
+    const text = `${item.label} ${item.keywords ?? ''}`.toLowerCase();
+    return terms.every((term) => text.includes(term));
+  });
   return (
     <Modal title="Find a tool" onClose={onClose}>
       <div className="modal-body">
         <div className="search-field">
           <Search size={18} />
           <input
+            ref={searchInput}
             autoFocus
             aria-label="Find a tool"
             placeholder="Search tools…"
@@ -414,15 +439,18 @@ function CommandMenu({
           />
         </div>
         <div className="command-options">
-          {navigation
-            .filter((n) => n.label.toLowerCase().includes(search.toLowerCase()))
-            .map((n) => (
-              <button key={n.id} onClick={() => navigate(n.id)}>
-                <n.icon size={18} />
-                {n.label}
-                <ArrowRight size={15} />
-              </button>
-            ))}
+          {matches.map((n) => (
+            <button key={n.id} onClick={() => navigate(n.id)}>
+              <n.icon size={18} />
+              {n.label}
+              <ArrowRight size={15} />
+            </button>
+          ))}
+          {!matches.length && (
+            <p className="muted" role="status">
+              No tools found. Try a tool name, such as wallet, user or logs.
+            </p>
+          )}
         </div>
       </div>
     </Modal>
