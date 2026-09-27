@@ -48,6 +48,7 @@ import { TaskCenter } from './features/tasks/TaskCenter';
 import { ApplicationCenter } from './features/applications/ApplicationCenter';
 import { RuntimeWorkbench } from './pages/RuntimeWorkbench';
 import { InvestigationProfiles } from './pages/InvestigationProfiles';
+import type { Investigation } from '../shared/investigation';
 
 const navigation = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, keywords: 'dashboard health uptime' },
@@ -102,6 +103,10 @@ export default function App() {
     [toast, setToast] = useState(''),
     [menu, setMenu] = useState(false),
     [command, setCommand] = useState(false),
+    [createdInvestigation, setCreatedInvestigation] = useState<{
+      record: Investigation;
+      session: unknown;
+    }>(),
     [theme, setTheme] = useState(() => localStorage.getItem('harbor-theme') ?? 'light');
 
   useEffect(() => {
@@ -110,6 +115,7 @@ export default function App() {
     const expired = () => {
       invalidated = true;
       setSession(undefined);
+      setCreatedInvestigation(undefined);
       setChecking(false);
     };
     window.addEventListener('session-ended', expired);
@@ -158,6 +164,7 @@ export default function App() {
   }, []);
 
   const navigate = (id: string) => {
+    if (id !== 'investigations') setCreatedInvestigation(undefined);
     location.hash = id;
     setPage(id);
     setMenu(false);
@@ -169,6 +176,7 @@ export default function App() {
     try {
       await request('logout', {});
       setSession(undefined);
+      setCreatedInvestigation(undefined);
     } catch (error) {
       setSessionError('Sign out could not be confirmed. ' + (error as Error).message);
     }
@@ -181,6 +189,7 @@ export default function App() {
       <Login
         onLogin={(value) => {
           setSessionError('');
+          setCreatedInvestigation(undefined);
           setSession(value);
         }}
       />
@@ -313,13 +322,25 @@ export default function App() {
           {page === 'logs' && <Logs />}
           {page === 'explorer' && <Explorer />}
           {page === 'changes' && <Changes />}
-          {page === 'investigations' && <Investigations />}
+          {page === 'investigations' && (
+            <Investigations
+              created={
+                createdInvestigation?.session === session ? createdInvestigation?.record : undefined
+              }
+              onCreatedConsumed={() => setCreatedInvestigation(undefined)}
+            />
+          )}
           {page === 'log-files' && <LogBrowser />}
           {page === 'task-center' && <TaskCenter onManage={() => navigate('tasks')} />}
           {page === 'application-center' && <ApplicationCenter onManage={navigate} />}
           {page === 'runtime' && <RuntimeWorkbench onManage={() => navigate('system')} />}
           {page === 'profiles' && (
-            <InvestigationProfiles onStarted={() => navigate('investigations')} />
+            <InvestigationProfiles
+              onStarted={(record) => {
+                setCreatedInvestigation({ record, session });
+                navigate('investigations');
+              }}
+            />
           )}
           <div hidden={page !== 'diagnostics'}>
             <Diagnostics />

@@ -39,6 +39,15 @@ export class RequestError extends Error {
     super(message);
   }
 }
+export function creationFailure(error: unknown, collection: 'investigations' | 'profiles'): string {
+  if (
+    error instanceof TypeError ||
+    (error instanceof RequestError &&
+      (error.status >= 500 || (error.status >= 200 && error.status < 300)))
+  )
+    return `Creation could not be confirmed. Check saved ${collection} before creating again; the first request may already have succeeded. Your draft is still here.`;
+  return error instanceof Error ? error.message : String(error);
+}
 function requireGeneration(generation: number) {
   if (generation !== sessionGeneration)
     throw new RequestError('The session changed. Sign in again before continuing.', 409);

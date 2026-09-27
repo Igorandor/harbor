@@ -11,7 +11,7 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react';
-import { download, request } from '../api';
+import { download, request, creationFailure } from '../api';
 import { ErrorBox, Modal, PageHeader } from '../components/ui';
 import { diagnosticSources } from '../../shared/diagnostics';
 import {
@@ -25,10 +25,14 @@ import {
   type ProfileDefinition,
   type ProfileSummary,
 } from '../../shared/investigation-profile';
-import { caseSeverity } from '../../shared/investigation';
+import { caseSeverity, type Investigation } from '../../shared/investigation';
 
 type ProfileListing = { records: ProfileSummary[]; unreadable: string[] };
-export function InvestigationProfiles({ onStarted }: { onStarted: () => void }) {
+export function InvestigationProfiles({
+  onStarted,
+}: {
+  onStarted: (record: Investigation) => void;
+}) {
   const [listing, setListing] = useState<ProfileListing>(),
     [selected, setSelected] = useState<InvestigationProfile>();
   const [editing, setEditing] = useState<ProfileDefinition>(),
@@ -361,6 +365,13 @@ function ProfileEditor({
     [reason, setReason] = useState(''),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
+  const errorRef = useRef<HTMLDivElement>(null);
+  const [failure, setFailure] = useState(0);
+  useEffect(() => {
+    if (!failure) return;
+    errorRef.current?.focus({ preventScroll: true });
+    errorRef.current?.scrollIntoView({ block: 'center' });
+  }, [failure]);
   function move(index: number, delta: number) {
     const target = index + delta;
     if (target < 0 || target >= draft.steps.length) return;
@@ -382,7 +393,8 @@ function ProfileEditor({
       const parsed = profileInputSchema.parse(draft);
       await onSave(parsed, reason);
     } catch (error) {
-      setError((error as Error).message);
+      setError(existing ? (error as Error).message : creationFailure(error, 'profiles'));
+      setFailure((value) => value + 1);
     } finally {
       setBusy(false);
     }
@@ -397,7 +409,11 @@ function ProfileEditor({
     >
       <form onSubmit={(event) => void submit(event)}>
         <div className="modal-body">
-          {error ? <ErrorBox error={error} /> : null}
+          {error ? (
+            <div ref={errorRef} tabIndex={-1}>
+              <ErrorBox error={error} />
+            </div>
+          ) : null}
           <label className="field">
             Title
             <input
@@ -550,25 +566,36 @@ function StartProfile({
 }: {
   profile: InvestigationProfile;
   onClose: () => void;
-  onStarted: () => void;
+  onStarted: (record: Investigation) => void;
 }) {
   const [title, setTitle] = useState(profile.title),
     [description, setDescription] = useState(profile.description),
     [severity, setSeverity] = useState('minor'),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
+  const errorRef = useRef<HTMLDivElement>(null);
+  const [failure, setFailure] = useState(0);
+  useEffect(() => {
+    if (!failure) return;
+    errorRef.current?.focus({ preventScroll: true });
+    errorRef.current?.scrollIntoView({ block: 'center' });
+  }, [failure]);
   async function start(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError('');
     try {
-      await request('investigation-profiles/' + profile.id + '/start', {
-        revision: profile.revision,
-        investigation: { title, description, severity, tags: [] },
-      });
-      onStarted();
+      const created = await request<Investigation>(
+        'investigation-profiles/' + profile.id + '/start',
+        {
+          revision: profile.revision,
+          investigation: { title, description, severity, tags: [] },
+        },
+      );
+      onStarted(created);
     } catch (error) {
-      setError((error as Error).message);
+      setError(creationFailure(error, 'investigations'));
+      setFailure((value) => value + 1);
     } finally {
       setBusy(false);
     }
@@ -583,7 +610,11 @@ function StartProfile({
     >
       <form onSubmit={(event) => void start(event)}>
         <div className="modal-body">
-          {error ? <ErrorBox error={error} /> : null}
+          {error ? (
+            <div ref={errorRef} tabIndex={-1}>
+              <ErrorBox error={error} />
+            </div>
+          ) : null}
           <label className="field">
             Investigation title
             <input

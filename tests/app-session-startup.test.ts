@@ -211,3 +211,64 @@ test('session-ended removes an already mounted diagnostic subtree instead of sil
   assert.ok(!nodes(f.render()).some((node) => node.type === 'Diagnostics'));
   assert.equal(f.calls.length, 1, 'Invalidation must not silently request a new session');
 });
+
+test('App consumes a created investigation once and cannot re-inject it on later navigation', async () => {
+  const f = await harness();
+  f.render();
+  f.calls[0].resolve(session('Alice'));
+  await settle();
+  const navigate = (label: string) =>
+    nodes(f.render())
+      .find((node) => node.type === 'button' && text(node).includes(label))!
+      .props.onClick();
+  navigate('Investigation profiles');
+  const created = { id: 'created-case', owner: 'Alice', title: 'One-time case' };
+  nodes(f.render())
+    .find((node) => node.type === 'InvestigationProfiles')!
+    .props.onStarted(created);
+  const target = nodes(f.render()).find((node) => node.type === 'Investigations')!;
+  assert.equal(target.props.created, created);
+  target.props.onCreatedConsumed();
+  assert.equal(
+    nodes(f.render()).find((node) => node.type === 'Investigations')!.props.created,
+    undefined,
+  );
+  navigate('Overview');
+  navigate('Investigations');
+  assert.equal(
+    nodes(f.render()).find((node) => node.type === 'Investigations')!.props.created,
+    undefined,
+  );
+});
+
+for (const nextOwner of ['Alice', 'Bob'])
+  test(
+    'created investigation handoff is invalidated before a new ' + nextOwner + ' session',
+    async () => {
+      const f = await harness();
+      f.render();
+      f.calls[0].resolve(session('Alice'));
+      await settle();
+      nodes(f.render())
+        .find((node) => node.type === 'button' && text(node).includes('Investigation profiles'))!
+        .props.onClick();
+      const onStarted = nodes(f.render()).find((node) => node.type === 'InvestigationProfiles')!
+        .props.onStarted;
+      const created = { id: 'old-session-case', owner: 'Alice', title: 'Old case' };
+      onStarted(created);
+      f.window.dispatchEvent(new Event('session-ended'));
+      const login = f.render();
+      assert.equal((login.type as Function).name, 'Login');
+      login.props.onLogin(session(nextOwner));
+      assert.equal(
+        nodes(f.render()).find((node) => node.type === 'Investigations')!.props.created,
+        undefined,
+      );
+      // Even a stale callback held by the old tree cannot transfer its session's record.
+      onStarted(created);
+      assert.equal(
+        nodes(f.render()).find((node) => node.type === 'Investigations')!.props.created,
+        undefined,
+      );
+    },
+  );

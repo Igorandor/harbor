@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 import { runInNewContext } from 'node:vm';
 import { summarizeCase, type Investigation } from '../shared/investigation.js';
-import { RequestError } from '../src/api.js';
+import { RequestError, creationFailure } from '../src/api.js';
 
 type Element = { type: string | Function; props: Record<string, any>; key?: string };
 const compiled = build({
@@ -29,7 +29,7 @@ const compiled = build({
               : args.path === 'react/jsx-runtime'
                 ? 'export const jsx=(type,props,key)=>({type,props,key}); export const jsxs=jsx; export const Fragment="Fragment";'
                 : args.path === '../api'
-                  ? 'export const request=(...args)=>globalThis.fixture.request(...args); export const download=(...args)=>globalThis.fixture.download(...args); export const RequestError=globalThis.fixture.RequestError;'
+                  ? 'export const request=(...args)=>globalThis.fixture.request(...args); export const download=(...args)=>globalThis.fixture.download(...args); export const RequestError=globalThis.fixture.RequestError; export const creationFailure=globalThis.fixture.creationFailure;'
                   : 'export const ' +
                     (args.path === 'lucide-react'
                       ? ['Download', 'FilePlus2', 'Search', 'RefreshCw', 'Camera', 'X']
@@ -90,7 +90,13 @@ function record(id: string): Investigation {
   };
 }
 const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
-async function harness() {
+async function harness(
+  options: {
+    created?: Investigation;
+    onCreatedConsumed?: () => void;
+    initialListError?: Error;
+  } = {},
+) {
   const states = new Map<string, any[]>();
   const effects: Array<() => void> = [];
   let active: any[] = [],
@@ -102,8 +108,10 @@ async function harness() {
     reject: (error: Error) => void;
   }> = [];
   const downloads: Array<{ name: string; value: unknown }> = [];
+  const focusCalls: Array<{ method: string; options: unknown }> = [];
   const fixture = {
     RequestError,
+    creationFailure,
     download(name: string, value: unknown) {
       downloads.push({ name, value });
     },
@@ -155,14 +163,23 @@ async function harness() {
     };
   }
   const render = () => {
-    const tree = expand({ type: module.exports.Investigations, props: {} }, 'root');
+    const tree = expand({ type: module.exports.Investigations, props: options }, 'root');
+    for (const node of nodes(tree))
+      if (node.props.tabIndex === -1 && node.props.ref) {
+        node.props.ref.current = {
+          focus: (options: unknown) => focusCalls.push({ method: 'focus', options }),
+          scrollIntoView: (options: unknown) => focusCalls.push({ method: 'scroll', options }),
+        };
+      }
     effects.splice(0).forEach((effect) => effect());
     return tree as Element;
   };
   const a = record('A'),
     b = record('B');
   render();
-  calls[0].resolve({ records: [summarizeCase(a), summarizeCase(b)], unreadable: [], total: 2 });
+  if (options.initialListError) calls[0].reject(options.initialListError);
+  else
+    calls[0].resolve({ records: [summarizeCase(a), summarizeCase(b)], unreadable: [], total: 2 });
   await settle();
   function choice(tree: Element, id: string) {
     return nodes(tree).find((n) => n.type === 'button' && text(n).startsWith('Case ' + id))!;
@@ -186,7 +203,7 @@ async function harness() {
     assert.ok(refresh);
     refresh.props.onClick();
   }
-  return { render, calls, downloads, a, b, choice, openA, submit, refreshDetail };
+  return { render, calls, downloads, focusCalls, a, b, choice, openA, submit, refreshDetail };
 }
 
 test('pending investigation reads and writes prevent another selection or close from losing the active draft', async () => {
@@ -356,4 +373,124 @@ test('a temporary unreadable listing entry preserves the current unsaved draft',
   f.calls.at(-1)!.resolve({ records: [summarizeCase(f.b)], unreadable: ['A'], total: 2 });
   await settle();
   assert.equal(note(f.render()).props.value, 'Keep draft during storage recovery');
+});
+
+for (const error of [
+  new TypeError('Failed to fetch'),
+  new RequestError('Unreadable gateway response', 201),
+  new RequestError('Gateway unavailable', 503),
+  new RequestError('Title rejected', 400),
+])
+  test(
+    'new investigation preserves its draft and distinguishes uncertain creation from ' +
+      error.message,
+    async () => {
+      const f = await harness();
+      button(f.render(), 'New investigation').props.onClick();
+      nodes(f.render())
+        .find((node) => node.type === 'input' && node.props.maxLength === 160)!
+        .props.onChange({ target: { value: 'Review retained draft' } });
+      nodes(f.render())
+        .find((node) => node.type === 'textarea' && node.props.maxLength === 4000)!
+        .props.onChange({ target: { value: 'Investigate the bounded fixture.' } });
+      nodes(f.render())
+        .find((node) => node.type === 'form')!
+        .props.onSubmit({ preventDefault() {} });
+      f.calls.at(-1)!.reject(error);
+      await settle();
+      const tree = f.render(),
+        message = nodes(tree).find((node) => node.type === 'ErrorBox')!.props.error;
+      if (error instanceof RequestError && error.status === 400)
+        assert.equal(message, error.message);
+      else assert.match(message, /Check saved investigations before creating again/);
+      assert.equal(
+        nodes(tree).find((node) => node.type === 'input' && node.props.maxLength === 160)!.props
+          .value,
+        'Review retained draft',
+      );
+      assert.equal(button(tree, 'Create investigation').props.disabled, false);
+      assert.equal(f.calls.filter((call) => call.body).length, 1, 'No automatic retransmission');
+    },
+  );
+
+test('a successful new investigation remains selected when its list refresh fails', async () => {
+  const f = await harness();
+  button(f.render(), 'New investigation').props.onClick();
+  nodes(f.render())
+    .find((node) => node.type === 'form')!
+    .props.onSubmit({ preventDefault() {} });
+  const created = record('NewCase');
+  f.calls.at(-1)!.resolve(created);
+  await settle();
+  f.calls.at(-1)!.reject(new RequestError('List unavailable', 500));
+  await settle();
+  const tree = f.render();
+  assert.ok(
+    !nodes(tree).some((node) => node.type === 'Modal' && node.props.title === 'New investigation'),
+  );
+  button(tree, 'Export investigation').props.onClick();
+  assert.equal((f.downloads.at(-1)!.value as Investigation).id, created.id);
+  assert.equal(f.calls.filter((call) => call.body).length, 1);
+});
+
+for (const status of [500, 403])
+  test('a one-time created investigation handoff respects list status ' + status, async () => {
+    let consumed = 0;
+    const created = record('FromProfile');
+    const f = await harness({
+      created,
+      onCreatedConsumed: () => consumed++,
+      initialListError: new RequestError('List response', status),
+    });
+    const tree = f.render();
+    assert.equal(consumed, 1);
+    if (status === 500) {
+      button(tree, 'Export investigation').props.onClick();
+      assert.equal((f.downloads.at(-1)!.value as Investigation).id, created.id);
+    } else {
+      assert.ok(
+        !nodes(tree).some(
+          (node) => node.type === 'button' && text(node).includes('Export investigation'),
+        ),
+      );
+      assert.ok(
+        !text(f.render()).includes(created.title),
+        'The old prop cannot re-inject denied data',
+      );
+    }
+  });
+
+test('new-case errors receive focus and scroll once per failed submission, including repeated messages', async () => {
+  const f = await harness();
+  button(f.render(), 'New investigation').props.onClick();
+  nodes(f.render())
+    .find((node) => node.type === 'input' && node.props.maxLength === 160)!
+    .props.onChange({ target: { value: 'Retained title' } });
+  nodes(f.render())
+    .find((node) => node.type === 'textarea' && node.props.maxLength === 4000)!
+    .props.onChange({ target: { value: 'Retained problem description' } });
+  assert.equal(f.focusCalls.length, 0);
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    nodes(f.render())
+      .find((node) => node.type === 'form')!
+      .props.onSubmit({ preventDefault() {} });
+    f.calls.at(-1)!.reject(new TypeError('Failed to fetch'));
+    await settle();
+    const tree = f.render();
+    assert.equal(f.focusCalls.length, attempt * 2);
+    assert.deepEqual(
+      f.focusCalls.map((call) => call.method),
+      Array.from({ length: attempt }, () => ['focus', 'scroll']).flat(),
+    );
+    assert.equal((f.focusCalls.at(-2)!.options as any).preventScroll, true);
+    assert.equal((f.focusCalls.at(-1)!.options as any).block, 'center');
+    const title = nodes(tree).find(
+      (node) => node.type === 'input' && node.props.maxLength === 160,
+    )!;
+    assert.ok(title.props.value.startsWith('Retained title'));
+    title.props.onChange({ target: { value: 'Retained title edited' } });
+    f.render();
+    f.render();
+    assert.equal(f.focusCalls.length, attempt * 2, 'Typing and rerender must not steal focus');
+  }
 });

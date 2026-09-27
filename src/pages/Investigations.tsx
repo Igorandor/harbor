@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Download, FilePlus2, Search, RefreshCw, Camera, X } from 'lucide-react';
-import { request, download, RequestError } from '../api';
+import { request, download, RequestError, creationFailure } from '../api';
 import { ErrorBox, Loading, Modal, PageHeader } from '../components/ui';
 import { DataValue } from '../components/DataView';
 import { InvestigationChecklist } from '../components/InvestigationChecklist';
@@ -15,9 +15,15 @@ import {
 } from '../../shared/investigation';
 
 type Listing = { records: CaseSummary[]; unreadable: string[]; total: number };
-export function Investigations() {
+export function Investigations({
+  created,
+  onCreatedConsumed,
+}: {
+  created?: Investigation;
+  onCreatedConsumed?: () => void;
+} = {}) {
   const [listing, setListing] = useState<Listing>(),
-    [selected, setSelected] = useState<Investigation>();
+    [selected, setSelected] = useState<Investigation | undefined>(() => created);
   const [creating, setCreating] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
@@ -70,6 +76,7 @@ export function Investigations() {
     }
   }
   useEffect(() => {
+    if (created) onCreatedConsumed?.();
     void load();
     return () => {
       ++generation.current;
@@ -257,6 +264,13 @@ function NewCase({
     [tags, setTags] = useState(''),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
+  const errorRef = useRef<HTMLDivElement>(null);
+  const [failure, setFailure] = useState(0);
+  useEffect(() => {
+    if (!failure) return;
+    errorRef.current?.focus({ preventScroll: true });
+    errorRef.current?.scrollIntoView({ block: 'center' });
+  }, [failure]);
   async function create(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -274,7 +288,8 @@ function NewCase({
         }),
       );
     } catch (error) {
-      setError((error as Error).message);
+      setError(creationFailure(error, 'investigations'));
+      setFailure((value) => value + 1);
     } finally {
       setBusy(false);
     }
@@ -288,7 +303,11 @@ function NewCase({
     >
       <form onSubmit={(event) => void create(event)}>
         <div className="modal-body">
-          {error ? <ErrorBox error={error} /> : null}
+          {error ? (
+            <div ref={errorRef} tabIndex={-1}>
+              <ErrorBox error={error} />
+            </div>
+          ) : null}
           <label className="field">
             Title
             <input

@@ -6,6 +6,7 @@ import { transformSync } from 'esbuild';
 import * as profileModel from '../shared/investigation-profile';
 import * as diagnostics from '../shared/diagnostics';
 import * as investigations from '../shared/investigation';
+import { creationFailure, RequestError } from '../src/api';
 
 const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
 function deferred<T>() {
@@ -35,8 +36,15 @@ type HookState = { slots: any[]; cursor: number; effects: (() => unknown)[] };
 
 // Run the actual parent and editor with separate persistent hook state. Network
 // responses are controlled, while selection, draft and save callbacks are real.
-async function harness(transport: (path: string, body?: any) => Promise<any>) {
+async function harness(
+  transport: (path: string, body?: any) => Promise<any>,
+  options: {
+    listErrorAfterWrite?: Error;
+    onStarted?: (record: investigations.Investigation) => void;
+  } = {},
+) {
   const calls: Array<{ path: string; body?: any }> = [];
+  const focusCalls: Array<{ method: string; options: unknown }> = [];
   const parent: HookState = { slots: [], cursor: 0, effects: [] };
   const editor: HookState = { slots: [], cursor: 0, effects: [] };
   let active = parent;
@@ -72,9 +80,12 @@ async function harness(transport: (path: string, body?: any) => Promise<any>) {
     react: hooks,
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'fragment' },
     '../api': {
+      creationFailure,
       request: async (path: string, body?: unknown) => {
         calls.push({ path, body });
-        if (path === 'investigation-profiles' && body === undefined)
+        if (path === 'investigation-profiles' && body === undefined) {
+          if (options.listErrorAfterWrite && calls.some((call) => call.body !== undefined))
+            throw options.listErrorAfterWrite;
           return {
             records: [alpha, bravo].map((value) => ({
               ...value,
@@ -83,6 +94,7 @@ async function harness(transport: (path: string, body?: any) => Promise<any>) {
             })),
             unreadable: [],
           };
+        }
         return transport(path, body);
       },
     },
@@ -118,25 +130,40 @@ async function harness(transport: (path: string, body?: any) => Promise<any>) {
     if (Array.isArray(node)) return node.map(text).join('');
     return text(node.props?.children);
   }
-  const page = () => walk(render(module.exports.InvestigationProfiles, { onStarted() {} }, parent));
+  const page = () =>
+    walk(
+      render(
+        module.exports.InvestigationProfiles,
+        { onStarted: options.onStarted ?? (() => {}) },
+        parent,
+      ),
+    );
   const button = (label: string, exact = true) =>
     page().find(
       (node) =>
         node.type === 'button' &&
         (exact ? text(node).trim() === label : text(node).includes(label)),
     );
-  const edit = () => {
-    const node = page().find(
-      (node) => typeof node.type === 'function' && node.type.name === 'ProfileEditor',
-    );
+  const edit = (name = 'ProfileEditor') => {
+    const node = page().find((node) => typeof node.type === 'function' && node.type.name === name);
     assert.ok(node, 'Editor remains mounted');
-    return walk(render(node.type, node.props, editor));
+    const tree = walk(render(node.type, node.props, editor));
+    for (const item of tree)
+      if (item.props?.tabIndex === -1 && item.props.ref) {
+        item.props.ref.current = {
+          focus: (options: unknown) => focusCalls.push({ method: 'focus', options }),
+          scrollIntoView: (options: unknown) => focusCalls.push({ method: 'scroll', options }),
+        };
+      }
+    while (editor.effects.length) editor.effects.shift()!();
+    return tree;
   };
   page();
   while (parent.effects.length) parent.effects.shift()!();
   await tick();
   return {
     calls,
+    focusCalls,
     page,
     button,
     edit,
@@ -450,3 +477,160 @@ test('oversized files are rejected before reading and malformed import envelopes
     assert.ok(!ui.page().some((node) => node.type?.name === 'ProfileEditor'));
   }
 });
+
+for (const error of [
+  new TypeError('Failed to fetch'),
+  new RequestError('Unreadable response', 201),
+  new RequestError('Gateway unavailable', 503),
+  new RequestError('Profile rejected', 422),
+])
+  test(
+    'new profile keeps its form after ' + error.message + ' without automatic create retry',
+    async () => {
+      const ui = await harness(async (_path, body) => {
+        if (body) throw error;
+        return bravo;
+      });
+      ui.select(bravo.title);
+      await tick();
+      ui.button('Duplicate').props.onClick();
+      ui.edit()
+        .find((node) => node.type === 'form')
+        .props.onSubmit({ preventDefault() {} });
+      await tick();
+      const editor = ui.edit(),
+        message = editor.find(
+          (node) => typeof node.type === 'function' && node.type.name === 'ErrorBox',
+        ).props.error;
+      if (error instanceof RequestError && error.status === 422)
+        assert.equal(message, error.message);
+      else assert.match(message, /Check saved profiles before creating again/);
+      assert.equal(
+        editor.find((node) => node.type === 'input' && node.props.maxLength === 120).props.value,
+        bravo.title + ' copy',
+      );
+      assert.equal(
+        editor.find((node) => node.type === 'button' && node.props.className === 'primary').props
+          .disabled,
+        false,
+      );
+      assert.equal(ui.calls.filter((call) => call.body).length, 1);
+    },
+  );
+
+test('profile create success closes the form and keeps the returned selection after list failure', async () => {
+  const created = { ...bravo, id: 'created-profile', title: 'Profile Bravo copy' };
+  const ui = await harness(async (_path, body) => (body ? created : bravo), {
+    listErrorAfterWrite: new RequestError('List unavailable', 500),
+  });
+  ui.select(bravo.title);
+  await tick();
+  ui.button('Duplicate').props.onClick();
+  ui.edit()
+    .find((node) => node.type === 'form')
+    .props.onSubmit({ preventDefault() {} });
+  await tick();
+  assert.equal(ui.selectedTitle(), created.title);
+  assert.ok(
+    !ui
+      .page()
+      .some((node) => typeof node.type === 'function' && node.type.name === 'ProfileEditor'),
+  );
+  assert.equal(ui.error(), 'List unavailable');
+  assert.equal(ui.calls.filter((call) => call.body).length, 1);
+});
+
+test('starting a profile forwards the created investigation identity to its parent', async () => {
+  const created = {
+    id: 'created-from-profile',
+    owner: 'Fixture',
+    title: 'Started case',
+  } as investigations.Investigation;
+  let received: investigations.Investigation | undefined;
+  const ui = await harness(async (_path, body) => (body ? created : bravo), {
+    onStarted: (record) => {
+      received = record;
+    },
+  });
+  ui.select(bravo.title);
+  await tick();
+  ui.button('Start investigation').props.onClick();
+  ui.edit('StartProfile')
+    .find((node) => node.type === 'form')
+    .props.onSubmit({ preventDefault() {} });
+  await tick();
+  assert.equal(received, created);
+  assert.equal(ui.calls.filter((call) => call.body).length, 1);
+});
+
+for (const error of [
+  new TypeError('Failed to fetch'),
+  new RequestError('Profile permission denied', 403),
+])
+  test(
+    'profile start preserves its form after ' + error.message + ' without reporting success',
+    async () => {
+      let started = 0;
+      const ui = await harness(
+        async (_path, body) => {
+          if (body) throw error;
+          return bravo;
+        },
+        { onStarted: () => started++ },
+      );
+      ui.select(bravo.title);
+      await tick();
+      ui.button('Start investigation').props.onClick();
+      ui.edit('StartProfile')
+        .find((node) => node.type === 'form')
+        .props.onSubmit({ preventDefault() {} });
+      await tick();
+      const dialog = ui.edit('StartProfile'),
+        message = dialog.find(
+          (node) => typeof node.type === 'function' && node.type.name === 'ErrorBox',
+        ).props.error;
+      if (error instanceof RequestError) assert.equal(message, error.message);
+      else assert.match(message, /Check saved investigations before creating again/);
+      assert.equal(dialog.find((node) => node.type === 'input').props.value, bravo.title);
+      assert.equal(started, 0);
+      assert.equal(ui.calls.filter((call) => call.body).length, 1);
+    },
+  );
+
+for (const component of ['ProfileEditor', 'StartProfile'])
+  test(
+    component + ' focuses and reveals each new error without moving focus on later edits',
+    async () => {
+      const ui = await harness(async (_path, body) => {
+        if (body) throw new TypeError('Failed to fetch');
+        return bravo;
+      });
+      ui.select(bravo.title);
+      await tick();
+      ui.button(
+        component === 'ProfileEditor' ? 'Duplicate' : 'Start investigation',
+      ).props.onClick();
+      ui.edit(component);
+      assert.equal(ui.focusCalls.length, 0);
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        ui.edit(component)
+          .find((node) => node.type === 'form')
+          .props.onSubmit({ preventDefault() {} });
+        await tick();
+        const tree = ui.edit(component);
+        assert.equal(ui.focusCalls.length, attempt * 2);
+        assert.equal(ui.focusCalls.at(-2)!.method, 'focus');
+        assert.equal((ui.focusCalls.at(-2)!.options as any).preventScroll, true);
+        assert.equal(ui.focusCalls.at(-1)!.method, 'scroll');
+        assert.equal((ui.focusCalls.at(-1)!.options as any).block, 'center');
+        const title = tree.find(
+          (node) => node.type === 'input' && node.props.value?.startsWith(bravo.title),
+        );
+        assert.ok(title, 'Original draft title is retained');
+        title.props.onChange({ target: { value: bravo.title + ' edited' } });
+        ui.edit(component);
+        ui.edit(component);
+        assert.equal(ui.focusCalls.length, attempt * 2, 'Typing and rerender must not steal focus');
+      }
+    },
+  );
