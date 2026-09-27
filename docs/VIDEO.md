@@ -1,20 +1,24 @@
 # Video publication kit
 
-## Prepared files
+## Current recording
 
-The revised Harbor walkthrough is 84 seconds long, with instrumental CC0 music and brief English captions. There is no spoken narration. The MP4, SRT and poster are delivered separately from this source repository. No public video URL or awarded bonus is claimed.
+The Harbor video now shows actual browser interactions: typing, navigation, changing results and saved workflow records. Duration: approximately 0:57. Instrumental CC0 music and short English captions remain; there is no narration.
 
-This is an edited sequence of actual application screens, not a continuous screen recording. Screens were captured from the running application after the scrollbar appearance update. The native IRIS operations shown are reads. Workflow records use an isolated presentation store; no production customer data is shown.
+This is an edited recording assembled from continuously captured browser frames during each interaction. Original timing is preserved within each clip; pauses between takes are removed. It is not a static screenshot presentation or a single uninterrupted take. The complete captured viewport remains visible. Login credentials are excluded.
+
+The native IRIS operations shown are reads. Investigation notes, campaign decisions and run records are saved in a separate presentation store. No native administration settings or existing user workflow data were changed.
+
+The MP4, SRT, poster and technical report are delivered separately from this repository. No public video URL or awarded bonus is claimed.
 
 ## Suggested YouTube title
 
-Harbor for InterSystems IRIS | An operations review, from question to evidence
+Harbor for InterSystems IRIS | Live workflow demonstration
 
 ## Suggested description
 
-An operations review, from question to evidence.
+Find a scheduled task, inspect its execution history and save an investigation note.
 
-An edited walkthrough of actual Harbor screens, with English on-screen captions and instrumental music. The demonstrated workflow reads an IRIS Community instance. No native administrative changes are performed.
+Recorded interactions with the running application, edited into short clips with original timing. English captions and instrumental music; no narration. The demonstrated workflow reads IRIS Community and stores review records in an isolated presentation workspace.
 
 Source and installation: https://github.com/YOUR_GITHUB_ACCOUNT/harbor
 
@@ -24,41 +28,24 @@ Open Exchange: add the published application URL.
 
 Music: Synthwave 15k by The Cynic Project — CC0 1.0 — https://opengameart.org/content/calm-ambient-2-synthwave-15k
 
-Music may be trimmed or looped, with loudness adjustment and fades. Source details and hashes are retained in [MUSIC_LICENSES.md](MUSIC_LICENSES.md).
+Music is trimmed or looped, normalized and faded. See [MUSIC_LICENSES.md](MUSIC_LICENSES.md) for primary sources and original file hashes.
 
 ## Before upload
 
-1. Watch and listen to the complete MP4. Replace the repository owner and add the real article/application links to the description.
-2. Upload the individual video, or use its chapter in the combined film. Review the publication settings yourself. Multiple uploads do not necessarily multiply the contest bonus.
-3. An English SRT is supplied. The brief captions are already part of the picture, so check for duplicate captions when enabling the optional subtitle track.
-4. Publish the chosen video, verify access without signing in, and add its actual URL to the Open Exchange YouTube field and repository README.
+1. Watch and listen to the entire MP4. Replace the repository owner and add actual article/application links.
+2. Upload the individual film or use its chapter in the combined film. Review publication settings yourself. Multiple uploads do not necessarily multiply the contest bonus.
+3. English SRT captions are supplied; short captions are already visible in the picture. Check for duplicate display when enabling subtitles.
+4. Verify the published video without signing in, then add its real URL to the Open Exchange YouTube field and repository README.
 
-## On-screen captions
+## Recorded clips
 
-### 1. Start with what is known
-
-Missing monitor data stays visible. Review the available evidence before changing a setting.
-
-### 2. Inspect the task
-
-Check its schedule and configuration. Opening the detail view does not execute the task.
-
-### 3. Look at the returned history
-
-Execution records add context. A bounded history is not a complete account of every run.
-
-### 4. Frame the review question
-
-An investigation starts with a specific question. The following screens show a saved review and its evidence.
-
-### 5. Choose the evidence
-
-Select the relevant sources and label the observation so another reviewer can find it later.
-
-### 6. Keep the capture and its gaps
-
-Saved source outcomes preserve what was available at the time of the review.
-
-### 7. Leave a useful conclusion
-
-Record the reasoning beside the evidence. This walkthrough made no native configuration changes.
+1. Inspect the live task list and choose a scheduled task.
+2. Filter the schedule to find Security Scan.
+3. Open the task and inspect its scheduling state.
+4. Switch to execution history to examine the returned runs.
+5. Read the result and duration of a recorded execution.
+6. Keep the evidence in an investigation for the operations review.
+7. Reopen the saved review and its timeline.
+8. Write the conclusion beside the retained evidence.
+9. Save the note to the investigation timeline.
+10. The saved note remains with the investigation evidence.
