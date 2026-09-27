@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 import { runInNewContext } from 'node:vm';
 import { summarizeCase, type Investigation } from '../shared/investigation.js';
+import { RequestError } from '../src/api.js';
 
 type Element = { type: string | Function; props: Record<string, any>; key?: string };
 const compiled = build({
@@ -28,7 +29,7 @@ const compiled = build({
               : args.path === 'react/jsx-runtime'
                 ? 'export const jsx=(type,props,key)=>({type,props,key}); export const jsxs=jsx; export const Fragment="Fragment";'
                 : args.path === '../api'
-                  ? 'export const request=(...args)=>globalThis.fixture.request(...args); export const download=()=>{};'
+                  ? 'export const request=(...args)=>globalThis.fixture.request(...args); export const download=(...args)=>globalThis.fixture.download(...args); export const RequestError=globalThis.fixture.RequestError;'
                   : 'export const ' +
                     (args.path === 'lucide-react'
                       ? ['Download', 'FilePlus2', 'Search', 'RefreshCw', 'Camera', 'X']
@@ -100,7 +101,12 @@ async function harness() {
     resolve: (value: any) => void;
     reject: (error: Error) => void;
   }> = [];
+  const downloads: Array<{ name: string; value: unknown }> = [];
   const fixture = {
+    RequestError,
+    download(name: string, value: unknown) {
+      downloads.push({ name, value });
+    },
     useState(initial: any) {
       const state = active,
         index = cursor++;
@@ -173,7 +179,14 @@ async function harness() {
     const result = form.props.onSubmit({ preventDefault() {} });
     return { result };
   }
-  return { render, calls, a, b, choice, openA, submit };
+  function refreshDetail() {
+    const refresh = nodes(render())
+      .filter((n) => n.type === 'button' && text(n).trim() === 'Refresh')
+      .at(-1);
+    assert.ok(refresh);
+    refresh.props.onClick();
+  }
+  return { render, calls, downloads, a, b, choice, openA, submit, refreshDetail };
 }
 
 test('pending investigation reads and writes prevent another selection or close from losing the active draft', async () => {
@@ -257,4 +270,90 @@ test('a queued edit during note submission is not erased by the older successful
   f.calls.at(-1)!.resolve({ records: [summarizeCase(f.a)], unreadable: [], total: 1 });
   await result;
   assert.equal(note(f.render()).props.value, 'Unsent B');
+});
+
+test('a denied refresh removes the selected investigation and its cached export', async () => {
+  const f = await harness();
+  f.a.notes.push({
+    id: 'evidence',
+    at: f.a.updatedAt,
+    author: 'alice',
+    kind: 'note',
+    text: 'Protected evidence',
+  });
+  await f.openA();
+  assert.ok(text(f.render()).includes('Protected evidence'));
+  button(f.render(), 'Export investigation').props.onClick();
+  assert.equal(f.downloads.length, 1);
+  f.refreshDetail();
+  f.calls.at(-1)!.reject(new RequestError('Source privilege revoked', 403));
+  await settle();
+  const denied = f.render();
+  assert.ok(
+    !text(denied).includes('Protected evidence'),
+    'Denied evidence must leave the visible workbench',
+  );
+  assert.ok(
+    !nodes(denied).some((n) => n.type === 'button' && text(n).trim() === 'Export investigation'),
+    'A known authorization denial must remove the cached export action',
+  );
+  assert.ok(
+    nodes(denied).some(
+      (n) => n.type === 'ErrorBox' && n.props.error === 'Source privilege revoked',
+    ),
+  );
+  assert.equal(
+    f.choice(denied, 'A'),
+    undefined,
+    'The denied summary must also leave the cached list',
+  );
+});
+
+test('a failed refresh with status 500 retains the investigation and unsaved note', async () => {
+  const f = await harness();
+  await f.openA();
+  note(f.render()).props.onChange({ target: { value: 'Keep my draft' } });
+  f.refreshDetail();
+  f.calls.at(-1)!.reject(new RequestError('Storage temporarily unavailable', 500));
+  await settle();
+  assert.equal(note(f.render()).props.value, 'Keep my draft');
+  assert.ok(button(f.render(), 'Export investigation'));
+});
+
+test('denial of another investigation does not discard the current authorized draft', async () => {
+  const f = await harness();
+  await f.openA();
+  note(f.render()).props.onChange({ target: { value: 'Draft for A' } });
+  f.choice(f.render(), 'B').props.onClick();
+  f.calls.at(-1)!.reject(new RequestError('Source privilege revoked for B', 403));
+  await settle();
+  assert.equal(note(f.render()).props.value, 'Draft for A');
+  assert.equal(f.choice(f.render(), 'B'), undefined);
+  assert.ok(button(f.render(), 'Export investigation'));
+});
+
+for (const response of ['forbidden', 'filtered'] as const)
+  test('a ' + response + ' investigation listing cannot leave a denied case open', async () => {
+    const f = await harness();
+    await f.openA();
+    button(f.render(), 'Refresh').props.onClick(); // First Refresh belongs to the page header.
+    if (response === 'forbidden')
+      f.calls.at(-1)!.reject(new RequestError('Operating access revoked', 403));
+    else f.calls.at(-1)!.resolve({ records: [summarizeCase(f.b)], unreadable: [], total: 2 });
+    await settle();
+    const after = f.render();
+    assert.ok(
+      !nodes(after).some((n) => n.type === 'button' && text(n).trim() === 'Export investigation'),
+    );
+    assert.equal(f.choice(after, 'A'), undefined);
+  });
+
+test('a temporary unreadable listing entry preserves the current unsaved draft', async () => {
+  const f = await harness();
+  await f.openA();
+  note(f.render()).props.onChange({ target: { value: 'Keep draft during storage recovery' } });
+  button(f.render(), 'Refresh').props.onClick();
+  f.calls.at(-1)!.resolve({ records: [summarizeCase(f.b)], unreadable: ['A'], total: 2 });
+  await settle();
+  assert.equal(note(f.render()).props.value, 'Keep draft during storage recovery');
 });

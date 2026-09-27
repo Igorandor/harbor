@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Download, FilePlus2, Search, RefreshCw, Camera, X } from 'lucide-react';
-import { request, download } from '../api';
+import { request, download, RequestError } from '../api';
 import { ErrorBox, Loading, Modal, PageHeader } from '../components/ui';
 import { DataValue } from '../components/DataView';
 import { InvestigationChecklist } from '../components/InvestigationChecklist';
@@ -38,14 +38,33 @@ export function Investigations() {
     pending.current = false;
     setBusy(false);
   }
+  function acceptListing(value: Listing) {
+    setListing(value);
+    setSelected((current) =>
+      current &&
+      (value.records.some((record) => record.id === current.id) ||
+        value.unreadable.includes(current.id))
+        ? current
+        : undefined,
+    );
+  }
+  function clearDeniedListing(error: unknown) {
+    if (error instanceof RequestError && error.status === 403) {
+      setListing(undefined);
+      setSelected(undefined);
+    }
+  }
   async function load() {
     const requestGeneration = begin();
     if (requestGeneration === undefined) return;
     try {
       const value = await request<Listing>('investigations');
-      if (requestGeneration === generation.current) setListing(value);
+      if (requestGeneration === generation.current) acceptListing(value);
     } catch (error) {
-      if (requestGeneration === generation.current) setError((error as Error).message);
+      if (requestGeneration === generation.current) {
+        clearDeniedListing(error);
+        setError((error as Error).message);
+      }
     } finally {
       finish(requestGeneration);
     }
@@ -64,7 +83,19 @@ export function Investigations() {
       const value = await request<Investigation>('investigations/' + id);
       if (requestGeneration === generation.current) setSelected(value);
     } catch (error) {
-      if (requestGeneration === generation.current) setError((error as Error).message);
+      if (requestGeneration === generation.current) {
+        if (error instanceof RequestError && error.status === 403) {
+          setSelected((current) => (current?.id === id ? undefined : current));
+          setListing(
+            (current) =>
+              current && {
+                ...current,
+                records: current.records.filter((record) => record.id !== id),
+              },
+          );
+        }
+        setError((error as Error).message);
+      }
     } finally {
       finish(requestGeneration);
     }
@@ -82,10 +113,12 @@ export function Investigations() {
       setSelected(value);
       try {
         const refreshed = await request<Listing>('investigations');
-        if (requestGeneration === generation.current) setListing(refreshed);
+        if (requestGeneration === generation.current) acceptListing(refreshed);
       } catch (error) {
-        if (requestGeneration === generation.current)
+        if (requestGeneration === generation.current) {
+          clearDeniedListing(error);
           setError('Investigation saved. Could not refresh the list: ' + (error as Error).message);
+        }
       }
       return true;
     } catch (error) {
