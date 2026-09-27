@@ -4,6 +4,7 @@ import { constants } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { ApiError } from './upstream.js';
 import { z } from 'zod';
+import { validStoredChange } from '../shared/change-record.js';
 
 const storedTimestamp = z.iso.datetime();
 export const workspaceRecordByteLimit = 4_000_000;
@@ -103,6 +104,10 @@ export class WorkspaceStore {
         value.revision < 1
       )
         throw new Error('Invalid record');
+      // Every receipt consumer, including source-access checks and linked cases,
+      // must reject corruption before receipt-driven recovery or native operations.
+      if (collection === 'changes' && !validStoredChange(value))
+        throw new Error('Invalid change record');
       return value;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT')

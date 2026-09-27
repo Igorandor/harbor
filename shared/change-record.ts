@@ -1,4 +1,98 @@
 import type { ChangeImpact } from './change-impact.js';
+import { z } from 'zod';
+
+const storedTimestamp = z.iso.datetime();
+const storedReader = z
+  .object({ path: z.string().min(1), query: z.record(z.string(), z.string()) })
+  .passthrough();
+const storedChange = z
+  .object({
+    expiresAt: storedTimestamp,
+    title: z.string(),
+    target: z.string(),
+    path: z.string().min(1),
+    method: z.enum(['PUT', 'POST', 'DELETE']),
+    query: z.record(z.string(), z.string()),
+    state: z.enum([
+      'prepared',
+      'expired',
+      'canceled',
+      'sending',
+      'verified',
+      'acknowledged',
+      'conflict',
+      'rejected',
+      'uncertain',
+    ]),
+    fields: z.array(
+      z
+        .object({
+          name: z.string(),
+          before: z.unknown().optional(),
+          requested: z.unknown().optional(),
+          observed: z.unknown().optional(),
+          readable: z.boolean(),
+          matches: z.boolean().optional(),
+        })
+        .passthrough(),
+    ),
+    evidenceOmissions: z
+      .array(
+        z
+          .object({
+            source: z.enum(['result', 'observation', 'field observations']),
+            bytes: z.number().int().nonnegative(),
+            at: storedTimestamp,
+            previousRetained: z.boolean(),
+          })
+          .passthrough(),
+      )
+      .optional(),
+    nativeStatus: z.number().int().optional(),
+    asyncId: z.string().optional(),
+    readback: storedReader.optional(),
+    impact: z
+      .object({
+        level: z.enum(['low', 'moderate', 'high']),
+        summary: z.string(),
+        consequences: z.array(z.string()),
+        related: z.array(
+          z
+            .object({
+              kind: z.enum(['user', 'role', 'application', 'task', 'process', 'resource']),
+              name: z.string(),
+              relationship: z.string(),
+            })
+            .passthrough(),
+        ),
+        sources: z.array(
+          z
+            .object({
+              path: z.string(),
+              status: z.enum(['read', 'unavailable', 'limited']),
+              count: z.number().int().nonnegative(),
+              notice: z.string().optional(),
+            })
+            .passthrough(),
+        ),
+        incomplete: z.boolean(),
+        assessedAt: storedTimestamp,
+      })
+      .passthrough()
+      .optional(),
+    explanation: z.string(),
+    events: z.array(
+      z.object({ at: storedTimestamp, action: z.string(), message: z.string() }).passthrough(),
+    ),
+    verification: z.enum(['fields', 'absence', 'process', 'task-state', 'metadata', 'response']),
+  })
+  .passthrough();
+
+/** Read-boundary predicate only; preserve original evidence, metadata and historical lengths. */
+export function validStoredChange(value: unknown): boolean {
+  return storedChange.safeParse(value).success;
+}
+
 export type ChangeState =
   | 'prepared'
   | 'expired'
