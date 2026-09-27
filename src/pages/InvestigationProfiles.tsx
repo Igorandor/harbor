@@ -31,12 +31,13 @@ export function InvestigationProfiles({ onStarted }: { onStarted: () => void }) 
   const [listing, setListing] = useState<ProfileListing>(),
     [selected, setSelected] = useState<InvestigationProfile>();
   const [editing, setEditing] = useState<ProfileDefinition>(),
-    [editExisting, setEditExisting] = useState(false),
+    [editTarget, setEditTarget] = useState<Pick<InvestigationProfile, 'id' | 'revision'>>(),
     [starting, setStarting] = useState(false);
   const [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [includeArchived, setIncludeArchived] = useState(false);
   const importInput = useRef<HTMLInputElement>(null);
+  const selectionRequest = useRef(0);
   async function load() {
     setError('');
     try {
@@ -47,47 +48,56 @@ export function InvestigationProfiles({ onStarted }: { onStarted: () => void }) 
   }
   useEffect(() => {
     void load();
+    return () => {
+      selectionRequest.current++;
+    };
   }, []);
   async function inspect(id: string) {
+    const generation = ++selectionRequest.current;
     setBusy(true);
     setError('');
     try {
-      setSelected(await request<InvestigationProfile>('investigation-profiles/' + id));
+      const profile = await request<InvestigationProfile>('investigation-profiles/' + id);
+      if (generation === selectionRequest.current) setSelected(profile);
     } catch (error) {
-      setError((error as Error).message);
+      if (generation === selectionRequest.current) setError((error as Error).message);
     } finally {
-      setBusy(false);
+      if (generation === selectionRequest.current) setBusy(false);
     }
   }
   async function save(definition: ProfileDefinition, reason: string) {
-    const profile =
-      editExisting && selected
-        ? await request<InvestigationProfile>('investigation-profiles/' + selected.id + '/revise', {
-            definition,
-            revision: selected.revision,
-            reason,
-          })
+    const generation = ++selectionRequest.current;
+    setBusy(true);
+    try {
+      const profile = editTarget
+        ? await request<InvestigationProfile>(
+            'investigation-profiles/' + editTarget.id + '/revise',
+            { definition, revision: editTarget.revision, reason },
+          )
         : await request<InvestigationProfile>('investigation-profiles', definition);
-    setSelected(profile);
-    setEditing(undefined);
-    void load();
+      if (generation === selectionRequest.current) setSelected(profile);
+      setEditing(undefined);
+      void load();
+    } finally {
+      if (generation === selectionRequest.current) setBusy(false);
+    }
   }
   async function status() {
     if (!selected) return;
+    const generation = ++selectionRequest.current;
     setBusy(true);
     setError('');
     try {
-      setSelected(
-        await request<InvestigationProfile>('investigation-profiles/' + selected.id + '/status', {
-          revision: selected.revision,
-          archived: selected.status === 'active',
-        }),
+      const profile = await request<InvestigationProfile>(
+        'investigation-profiles/' + selected.id + '/status',
+        { revision: selected.revision, archived: selected.status === 'active' },
       );
+      if (generation === selectionRequest.current) setSelected(profile);
       void load();
     } catch (error) {
-      setError((error as Error).message);
+      if (generation === selectionRequest.current) setError((error as Error).message);
     } finally {
-      setBusy(false);
+      if (generation === selectionRequest.current) setBusy(false);
     }
   }
   async function importFile(file: File | undefined) {
@@ -96,7 +106,7 @@ export function InvestigationProfiles({ onStarted }: { onStarted: () => void }) 
       if (file.size > 64000) throw new Error('Profile files are limited to 64 KB.');
       const definition = importProfile(JSON.parse(await file.text()));
       setEditing(definition);
-      setEditExisting(false);
+      setEditTarget(undefined);
       setError('');
     } catch (error) {
       setError('Could not import the profile: ' + (error as Error).message);
@@ -129,7 +139,7 @@ export function InvestigationProfiles({ onStarted }: { onStarted: () => void }) 
               sources: ['identity', 'health', 'messages'],
               steps: [{ title: '', instruction: '', required: true }],
             });
-            setEditExisting(false);
+            setEditTarget(undefined);
           }}
         >
           <Plus size={16} /> New profile
@@ -188,7 +198,7 @@ export function InvestigationProfiles({ onStarted }: { onStarted: () => void }) 
               key={index}
               onClick={() => {
                 setEditing(structuredClone(profile));
-                setEditExisting(false);
+                setEditTarget(undefined);
               }}
             >
               <strong>{profile.title}</strong>
@@ -223,7 +233,7 @@ export function InvestigationProfiles({ onStarted }: { onStarted: () => void }) 
                   disabled={busy || selected.status !== 'active'}
                   onClick={() => {
                     setEditing(definition(selected));
-                    setEditExisting(true);
+                    setEditTarget({ id: selected.id, revision: selected.revision });
                   }}
                 >
                   Edit profile
@@ -231,7 +241,7 @@ export function InvestigationProfiles({ onStarted }: { onStarted: () => void }) 
                 <button
                   onClick={() => {
                     setEditing({ ...definition(selected), title: selected.title + ' copy' });
-                    setEditExisting(false);
+                    setEditTarget(undefined);
                   }}
                 >
                   <Copy size={16} /> Duplicate
@@ -305,7 +315,7 @@ export function InvestigationProfiles({ onStarted }: { onStarted: () => void }) 
       {editing ? (
         <ProfileEditor
           initial={editing}
-          existing={editExisting}
+          existing={Boolean(editTarget)}
           onClose={() => setEditing(undefined)}
           onSave={save}
         />
