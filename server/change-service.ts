@@ -15,8 +15,13 @@ type Prepared = {
   instance: string;
 };
 type Reader = { path: string; query: Record<string, string> };
-const writeOnly = (name: string) =>
-  /password|secret|privatekey|token|walletsecretconfig/i.test(name);
+const booleanPolicies = new Set(['ChangePassword', 'PasswordNeverExpires', 'HOTPKeyDisplay']);
+const writeOnly = (name: string, value: unknown) =>
+  !(typeof value === 'boolean' && booleanPolicies.has(name)) &&
+  /password|secret|privatekey|token|walletsecretconfig|hotpkey/i.test(
+    name.replace(/[^a-z0-9]/gi, ''),
+  );
+const redactField = (name: string, value: unknown) => redact({ [name]: value })[name];
 const clone = <T>(value: T): T => structuredClone(value);
 
 export class ChangeService {
@@ -167,9 +172,9 @@ export class ChangeService {
       );
     const fields: ChangeField[] = Object.entries(this.editableFields(op)).map(([name, value]) => ({
       name,
-      before: redact(baseline?.[name]),
-      requested: writeOnly(name) ? '[redacted]' : redact(value),
-      readable: !writeOnly(name) && !!reader,
+      before: redactField(name, baseline?.[name]),
+      requested: writeOnly(name, value) ? '[redacted]' : redactField(name, value),
+      readable: !writeOnly(name, value) && !!reader,
     }));
     const process = op.path.startsWith('/v2/process/');
     const taskState = /^\/v2\/task\/(suspend|resume)$/.test(op.path);
@@ -312,9 +317,9 @@ export class ChangeService {
                 ? stableValue(prepared.baseline) !== stableValue(current)
                 : record.verification === 'task-state'
                   ? prepared.baseline?.Suspended !== current?.Suspended
-                  : Object.keys(this.editableFields(op)).some(
-                      (name) =>
-                        !writeOnly(name) &&
+                  : Object.entries(this.editableFields(op)).some(
+                      ([name, value]) =>
+                        !writeOnly(name, value) &&
                         stableValue(prepared.baseline?.[name]) !== stableValue(current?.[name]),
                     );
           if (conflict) {
@@ -356,7 +361,7 @@ export class ChangeService {
               record.verification = 'fields';
               record.fields = record.fields.map((field) => ({
                 ...field,
-                readable: !writeOnly(field.name),
+                readable: !writeOnly(field.name, field.requested),
               }));
             }
           }
@@ -449,9 +454,10 @@ export class ChangeService {
     }
     record.fields = record.fields.map((field) => ({
       ...field,
-      observed: field.readable ? redact(observed[field.name]) : undefined,
+      observed: field.readable ? redactField(field.name, observed[field.name]) : undefined,
       matches: field.readable
-        ? stableValue(field.requested) === stableValue(redact(observed[field.name]))
+        ? stableValue(field.requested) ===
+          stableValue(redactField(field.name, observed[field.name]))
         : undefined,
     }));
     const readable = record.fields.filter((field) => field.readable);

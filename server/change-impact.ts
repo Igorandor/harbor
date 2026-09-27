@@ -8,6 +8,19 @@ import {
 } from '../shared/change-impact.js';
 import { parameters } from '../shared/schema.js';
 
+const userPolicyTypes: Readonly<Record<string, 'boolean' | 'string' | 'integer'>> = {
+  ChangePassword: 'boolean',
+  PasswordNeverExpires: 'boolean',
+  HOTPKeyDisplay: 'boolean',
+  AccountNeverExpires: 'boolean',
+  AutheEnabled: 'integer',
+  ExpirationDate: 'string',
+  PhoneNumber: 'string',
+  PhoneProvider: 'string',
+  NameSpace: 'string',
+  Routine: 'string',
+};
+
 /** Advisory dependency inspection; native IRIS permissions and mutation validation remain authoritative. */
 export async function assessChangeImpact(
   client: IrisClient,
@@ -144,12 +157,76 @@ export async function assessChangeImpact(
       operation.method === 'DELETE'
     ) {
       impact.level = 'high';
-      impact.summary = 'This changes an account’s configured access.';
+      if (operation.method !== 'DELETE')
+        impact.summary = 'This changes an account’s configured access.';
       impact.consequences.push(
         'Existing sessions and application-specific authorization may behave differently from the updated account configuration. Verify access through a separate session when required.',
       );
       for (const role of [...roleNames(baseline?.Roles), ...roleNames(body.Roles)])
         add('role', role, 'Role assignment before or after this change');
+    }
+    const policyConsequences = [
+      typeof body.ChangePassword === 'boolean'
+        ? body.ChangePassword
+          ? 'The user must change their password at the next sign-in.'
+          : 'The requirement to change the password at the next sign-in is cleared.'
+        : undefined,
+      typeof body.PasswordNeverExpires === 'boolean'
+        ? body.PasswordNeverExpires
+          ? 'The password will no longer expire under the normal expiration policy.'
+          : 'The password will follow the normal expiration policy.'
+        : undefined,
+      typeof body.HOTPKeyDisplay === 'boolean'
+        ? body.HOTPKeyDisplay
+          ? 'The one-time-password setup QR code or key will be shown at the next sign-in.'
+          : 'The one-time-password setup QR code or key will not be shown at the next sign-in.'
+        : undefined,
+      typeof body.AccountNeverExpires === 'boolean'
+        ? body.AccountNeverExpires
+          ? 'The account will no longer expire under the normal expiration policy.'
+          : 'The account will follow the normal expiration policy.'
+        : undefined,
+      Number.isSafeInteger(body.AutheEnabled)
+        ? 'This changes the account’s enabled two-factor authentication methods. Confirm the user can use the configured factor before their next sign-in.'
+        : undefined,
+      typeof body.ExpirationDate === 'string'
+        ? ['', '1840-12-31'].includes(body.ExpirationDate)
+          ? 'The account’s last usable date will be cleared.'
+          : 'The account’s last usable date will change. Sign-in may stop after that date unless account expiration is disabled.'
+        : undefined,
+      typeof body.PhoneNumber === 'string' || typeof body.PhoneProvider === 'string'
+        ? 'This changes the phone number or provider used for two-factor authentication. Verify that the user can receive authentication messages.'
+        : undefined,
+      typeof body.NameSpace === 'string'
+        ? 'New terminal sessions will use the configured namespace.'
+        : undefined,
+      typeof body.Routine === 'string'
+        ? body.Routine === ''
+          ? 'New terminal sessions will start in programmer mode instead of running a startup routine.'
+          : 'New terminal sessions will run the configured startup routine.'
+        : undefined,
+    ].filter((message): message is string => message !== undefined);
+    const submittedPolicies = fields.filter((field) => Object.hasOwn(userPolicyTypes, field));
+    if (submittedPolicies.length && operation.method !== 'DELETE') {
+      impact.summary = fields.some((field) =>
+        ['Enabled', 'Roles', 'EscalationRoles'].includes(field),
+      )
+        ? 'This changes account access and its sign-in or expiration policy.'
+        : 'This changes the account’s sign-in or expiration policy.';
+      if (fields.some((field) => field === 'NameSpace' || field === 'Routine'))
+        impact.summary += ' Terminal-session configuration also changes.';
+      impact.level = 'high';
+      impact.consequences.push(...policyConsequences);
+      if (
+        submittedPolicies.some((field) =>
+          userPolicyTypes[field] === 'integer'
+            ? !Number.isSafeInteger(body[field])
+            : typeof body[field] !== userPolicyTypes[field],
+        )
+      )
+        impact.consequences.push(
+          'The proposed policy value has an unexpected type; review the input before execution.',
+        );
     }
   }
   if (operation.path === '/v2/security/role') {
