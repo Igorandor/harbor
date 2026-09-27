@@ -91,6 +91,11 @@ export function createApp(options: AppOptions) {
     if (attempt.count >= 10) throw new ApiError(429, 'Too many sign-in attempts. Wait one minute.');
     attempt.count++;
     attempts.set(key, attempt);
+    const previous = sessions.get(req.cookies.harbor_session);
+    const replacing =
+      previous && time - previous.seen <= 30 * 60000 && time - previous.created <= 8 * 3600000
+        ? previous
+        : undefined;
     const auth = 'Basic ' + Buffer.from(`${parsed.username}:${parsed.password}`).toString('base64');
     const result = await client.request(auth, { path: '/info', method: 'GET' });
     const identity = z
@@ -113,13 +118,31 @@ export function createApp(options: AppOptions) {
         409,
         'This portal requires the SysAdmin v2 API. Use IRIS Community 2026.2 or newer with v2 enabled.',
       );
+    const completed = now();
+    // A pending replacement login must not undo a later logout or account switch.
+    // An already-stale cookie at request start is still an ordinary fresh login.
+    if (
+      replacing &&
+      (sessions.get(req.cookies.harbor_session) !== replacing ||
+        completed - replacing.seen > 30 * 60000 ||
+        completed - replacing.created > 8 * 3600000)
+    )
+      throw new ApiError(409, 'The session changed while signing in. Sign in again to continue.');
     for (const [k, s] of sessions)
-      if (time - s.seen > 30 * 60000 || time - s.created > 8 * 3600000) sessions.delete(k);
+      if (completed - s.seen > 30 * 60000 || completed - s.created > 8 * 3600000)
+        sessions.delete(k);
     if (sessions.size >= 100) throw new ApiError(503, 'Session capacity reached. Try again later.');
     if (req.cookies.harbor_session) sessions.delete(req.cookies.harbor_session);
     const id = randomBytes(32).toString('hex'),
       csrf = randomBytes(32).toString('hex');
-    sessions.set(id, { auth, csrf, created: time, seen: time, info: result.data, activity: [] });
+    sessions.set(id, {
+      auth,
+      csrf,
+      created: completed,
+      seen: completed,
+      info: result.data,
+      activity: [],
+    });
     // A valid account must not reset the budget for guesses against other accounts.
     res.cookie('harbor_session', id, {
       httpOnly: true,

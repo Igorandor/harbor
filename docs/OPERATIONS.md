@@ -8,6 +8,8 @@ Signing in, signing out or receiving a current session rejection clears protecte
 
 If the browser does not support or allow `BroadcastChannel`, session handling still works in the current tab, but automatic clearing of other tabs is unavailable. Close or reload other Harbor tabs when changing accounts in that browser. Previously downloaded exports cannot be recalled.
 
+A sign-in that starts while another account session is active cannot replace that session if it is signed out, replaced or expires before credential verification finishes. Harbor rejects that delayed sign-in without issuing a new cookie; submit the sign-in again explicitly. An already-expired cookie at the start does not prevent a fresh sign-in. This check does not cancel native work already dispatched, and independent sign-ins that start without an active session are not ordered by this replacement check.
+
 An ordinary native GET sent through `/api/iris` cancels its HTTP transport if the browser connection closes before the response finishes. The 20-second upstream deadline and 8 MB streamed-response limit still apply. Transport cancellation does not guarantee that IRIS has stopped work already started. This ownership rule does not apply to diagnostic batches, other observation routes, POST audit operations or durable change execution/readback; those keep their existing completion handling. Do not treat disconnecting as cancellation of a native change.
 
 ## Investigate a change
