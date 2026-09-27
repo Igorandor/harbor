@@ -42,3 +42,7 @@ See [the latest authorization and readiness review](CONTEST_SECURITY_REVIEW.md).
 ## Original idea and current walkthrough
 
 The [original project idea](../IDEA.md) and the additional product-specific walkthrough in [README](../README.md) describe the current independent release. The official [contest page](https://openexchange.intersystems.com/contest/48), read September 26, lists the submission deadline as September 27, 2026, 23:59 EST. It also identifies complexity, clarity of instructions, developer experience, applicability and usability as judging criteria. No acceptance or bonus award is implied.
+
+## Video and online-demo preparation
+
+A narrated walkthrough, subtitles and upload text are prepared; see [VIDEO.md](VIDEO.md). They have not been published. The owner chose to skip cloud hosting; see [ONLINE_DEMO.md](ONLINE_DEMO.md). Do not count a local video file or local server as an awarded bonus.
