@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import type { DiagnosticBundle, DiagnosticId } from './diagnostics.js';
-import type { EvidenceReview } from './evidence-comparison.js';
+import { diagnosticSources, type DiagnosticBundle, type DiagnosticId } from './diagnostics.js';
+import { reviewDispositions, type EvidenceReview } from './evidence-comparison.js';
 export const caseSeverity = ['information', 'minor', 'major', 'critical'] as const;
 export const caseStatus = ['open', 'investigating', 'monitoring', 'resolved', 'archived'] as const;
 export const caseInput = z
@@ -11,21 +11,131 @@ export const caseInput = z
     tags: z.array(z.string().trim().min(1).max(40)).max(12).default([]),
   })
   .strict();
+const storedId = z.string().min(1);
+const storedTime = z.iso.datetime();
+const storedSource = z.enum(diagnosticSources.map((source) => source.id));
+const storedDecision = z
+  .object({
+    differenceId: storedId,
+    disposition: z.enum(reviewDispositions),
+    note: z.string(),
+    at: storedTime,
+    author: z.string(),
+  })
+  .passthrough();
 const storedCaseFields = caseInput
   .extend({
     tags: caseInput.shape.tags.removeDefault(),
     status: z.enum(caseStatus),
+    resolution: z.string().optional(),
+    notes: z.array(
+      z
+        .object({
+          id: storedId,
+          at: storedTime,
+          author: z.string(),
+          kind: z.enum(['note', 'status', 'capture', 'link']),
+          text: z.string(),
+          captureId: storedId.optional(),
+          changeId: storedId.optional(),
+        })
+        .passthrough(),
+    ),
+    captures: z.array(
+      z
+        .object({
+          id: storedId,
+          title: z.string(),
+          sources: z.array(storedSource),
+          capturedBy: z.string(),
+          bundle: z
+            .object({
+              version: z.literal(1),
+              instance: z.string(),
+              startedAt: storedTime,
+              finishedAt: storedTime,
+              limits: z.array(z.string()),
+              sections: z.array(
+                z
+                  .object({
+                    id: storedSource,
+                    title: z.string(),
+                    path: z.string(),
+                    observedAt: storedTime,
+                    elapsedMs: z.number().nonnegative(),
+                    status: z.enum(['collected', 'unavailable', 'too large', 'pending']),
+                    httpStatus: z.number().int(),
+                    data: z.unknown().optional(),
+                    notice: z.string().optional(),
+                  })
+                  .passthrough(),
+              ),
+            })
+            .passthrough(),
+        })
+        .passthrough(),
+    ),
+    linkedChanges: z.array(storedId),
+    profile: z
+      .object({
+        id: storedId,
+        revision: z.number().int().positive(),
+        title: z.string(),
+        sources: z.array(storedSource),
+      })
+      .passthrough()
+      .optional(),
+    checklist: z
+      .array(
+        z
+          .object({
+            id: storedId,
+            title: z.string(),
+            instruction: z.string(),
+            required: z.boolean(),
+            state: z.enum(['open', 'completed', 'not applicable']),
+            note: z.string().optional(),
+            updatedAt: storedTime.optional(),
+            updatedBy: z.string().optional(),
+          })
+          .passthrough(),
+      )
+      .optional(),
+    evidenceReviews: z
+      .array(
+        z
+          .object({
+            id: storedId,
+            // A structurally readable future version still reaches the existing
+            // unsupported-comparison response when the operator tries to change it.
+            comparisonVersion: z.number().int().positive(),
+            title: z.string(),
+            beforeId: storedId,
+            afterId: storedId,
+            createdAt: storedTime,
+            createdBy: z.string(),
+            updatedAt: storedTime,
+            decisions: z.array(storedDecision),
+            history: z.array(storedDecision.extend({ eventId: storedId })),
+            conclusion: z
+              .object({
+                text: z.string(),
+                at: storedTime,
+                author: z.string(),
+                limitsAcknowledged: z.literal(true),
+              })
+              .passthrough()
+              .optional(),
+          })
+          .passthrough(),
+      )
+      .optional(),
   })
   .passthrough();
 
-/** Validate stored basics without applying input defaults or rewriting evidence. */
+/** Validate consumed structure, retaining original records and arbitrary native data. */
 export function validStoredCase(value: Investigation): boolean {
-  return (
-    storedCaseFields.safeParse(value).success &&
-    Array.isArray(value.notes) &&
-    Array.isArray(value.captures) &&
-    Array.isArray(value.linkedChanges)
-  );
+  return storedCaseFields.safeParse(value).success;
 }
 export type CaseNote = {
   id: string;
