@@ -52,3 +52,7 @@ Saved investigations and receipts are partitioned by account and stable instance
 Captures and comparisons have explicit size and count bounds. Missing sources remain unknown, and a review conclusion remains an operator's assessment. The [operational guide](https://github.com/Igorandor/harbor/blob/main/docs/OPERATIONS.md) describes these limits and recovery procedures.
 
 The September 27 checkpoint passed production builds and 312 Node tests. Verification includes synthetic security and failure scenarios, earlier native checks against IRIS Community, and desktop/mobile browser checks with their scope recorded separately. IRIS for Health and a complete external OAuth-provider integration remain unverified. See the [verification record](https://github.com/Igorandor/harbor/blob/main/docs/VERIFICATION.md) for the tested scenarios.
+
+## Video walkthrough
+
+[Watch the recorded workflow on YouTube](https://www.youtube.com/watch?v=TtJbHYvCNck).

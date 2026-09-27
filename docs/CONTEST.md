@@ -11,21 +11,20 @@ Source: [contest announcement](https://community.intersystems.com/post/intersyst
 | OS management                 | Process controls, CPU/memory/disk, devices, database inspection               | `/v2/process*`, `/v2/device*`, `/v2/database*`, protected native telemetry extension                          |
 | Logs                          | Messages, alerts, audit, task history, journal files and API console/activity | native log files through the extension, `/v2/security/audit/records`, `/v2/task/history`, `/v2/journal/files` |
 
-The application includes English installation instructions and a written demonstration walkthrough. Original source code is MIT licensed and ready for a public GitHub/GitLab repository. This local preparation does not constitute publication or submission to Open Exchange.
+The application includes English installation instructions and a written demonstration walkthrough. Original source code is MIT licensed and published at [Igorandor/harbor](https://github.com/Igorandor/harbor). The Open Exchange application was sent for approval with Submit to Contest selected on September 28, 2026 (Europe/Warsaw). Moderation and contest acceptance remain pending.
 
 ## Technology bonuses
 
 The [published technology bonus list](https://community.intersystems.com/post/technology-bonuses-intersystems-programming-contest-build-your-own-management-portal) was reviewed. Harbor uses Docker and Embedded Python for a concrete purpose: native host telemetry and bounded log reads.
 
-No claim is made for online hosting, published IPM packages, community ideas, articles, YouTube videos, first-time participation or reported vendor bugs. These require separate completed actions or eligibility checks.
+The video is available through the link in [VIDEO.md](VIDEO.md). No bonus award is assumed. Online hosting, IPM publication, community ideas, first-time participation and reported vendor bugs are not claimed.
 
-## Before publishing
+## Submission follow-up
 
-1. Choose the public repository and push this directory as its root.
-2. Keep `.env`, test credentials for non-demo systems and generated runtime data out of the repository.
-3. Add the real author's Developer Community profile to the Open Exchange submission. If submitted as a team, add all team members' profile links to the README.
-4. Use the description below and the README walkthrough for the application listing.
-5. Review the [general terms](https://openexchange.intersystems.com/markdown?url=/assets/doc/contest-terms.md), publish the application on Open Exchange, then apply to the contest using the [submission guide](https://docs.openexchange.intersystems.com/contest/apply/). The announcement states a submission deadline of **September 27, 2026, 23:59 EST**; verify the current deadline in the organizer's interface.
+1. Wait for Open Exchange moderation and verify the listing on [contest 48](https://openexchange.intersystems.com/contest/48).
+2. Finish Developer Community article moderation and add its public URL to the application.
+3. Keep credentials and generated runtime data out of future commits.
+4. Confirm awarded bonuses with the organizer; upload or submission alone does not establish an award.
 
 ### Suggested Open Exchange description
 
@@ -33,7 +32,7 @@ Harbor is an administration portal for InterSystems IRIS. Inspect tasks, logs, p
 
 ## Current review status
 
-See [the latest authorization and readiness review](CONTEST_SECURITY_REVIEW.md). Public repository publication, the Open Exchange listing, participant eligibility and organizer acceptance remain unconfirmed. The earlier Harbor foundation was removed from the current Atlas and Waypoint application implementations. Each project now has an independent repository and runtime. Retained history, test ancestry and external references are disclosed in [provenance](PROVENANCE.md); separate contest acceptance remains the organizer's decision.
+See [the latest authorization and readiness review](CONTEST_SECURITY_REVIEW.md). The repository is public and the Open Exchange application is pending approval. Participant eligibility and organizer acceptance remain the organizer’s decision. The earlier Harbor foundation was removed from the current Atlas and Waypoint application implementations. Each project now has an independent repository and runtime. Retained history, test ancestry and external references are disclosed in [provenance](PROVENANCE.md); separate contest acceptance remains the organizer's decision.
 
 ## Developer Community article draft
 
@@ -45,4 +44,4 @@ The [original project idea](../IDEA.md) and the additional product-specific walk
 
 ## Video and online-demo preparation
 
-A music-only walkthrough, English captions and upload text are prepared; see [VIDEO.md](VIDEO.md). They have not been published. The owner chose to skip cloud hosting; see [ONLINE_DEMO.md](ONLINE_DEMO.md). Do not count a local video file or local server as an awarded bonus.
+The [video walkthrough](https://www.youtube.com/watch?v=TtJbHYvCNck) is published as unlisted with English captions and CC0 music; see [VIDEO.md](VIDEO.md). The owner chose to skip cloud hosting; see [ONLINE_DEMO.md](ONLINE_DEMO.md). Do not count a local video file or local server as an awarded bonus.

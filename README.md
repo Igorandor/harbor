@@ -170,7 +170,7 @@ See [Reading and editing native API data](docs/DATA_VIEWS.md) for interactive re
 
 Open Diagnostic bundle, choose the evidence sources and enter an optional investigation note. Select Capture selected sources. Inspect each source separately: collected, unavailable, pending and too large have different meanings. A partial capture is not a healthy-system verdict. Export bundle includes timestamps, limits and the note. The eight choices are identity, health, host capacity, processes, tasks, task history, journal files and recent messages. At most two native reads run together; each report section is capped at 200 KB. No IRIS configuration is changed.
 
-See [the original project idea](IDEA.md). The written walkthrough above is part of the contest demonstration. A music-only screen walkthrough with English captions has also been prepared for publication; see the [video publication kit](docs/VIDEO.md). No public video or hosted-demo URL is claimed.
+See [the original project idea](IDEA.md). The written walkthrough above is part of the contest demonstration. Watch the [video walkthrough](https://www.youtube.com/watch?v=TtJbHYvCNck), recorded from actual application interactions with English captions and CC0 music. Recording details and credits are in [VIDEO.md](docs/VIDEO.md).
 
 ## Author
 

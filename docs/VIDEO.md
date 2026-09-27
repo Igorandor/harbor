@@ -1,4 +1,4 @@
-# Video publication kit
+# Video walkthrough
 
 ## Current recording
 
@@ -8,7 +8,7 @@ This is an edited recording assembled from continuously captured browser frames 
 
 The native IRIS operations shown are reads. Investigation notes, campaign decisions and run records are saved in a separate presentation store. No native administration settings or existing user workflow data were changed.
 
-The MP4, SRT, poster and technical report are delivered separately from this repository. No public video URL or awarded bonus is claimed.
+Watch on [YouTube](https://www.youtube.com/watch?v=TtJbHYvCNck). The video is unlisted and accessible to anyone with its link. Published on September 28, 2026 (Europe/Warsaw). YouTube completed its copyright check without finding problems; contest bonus decisions remain with the organizer. The MP4, SRT, poster and technical report are delivered separately from this repository.
 
 ## Suggested YouTube title
 
@@ -30,9 +30,9 @@ Music: Synthwave 15k by The Cynic Project — CC0 1.0 — https://opengameart.or
 
 Music is trimmed or looped, normalized and faded. See [MUSIC_LICENSES.md](MUSIC_LICENSES.md) for primary sources and original file hashes.
 
-## Before upload
+## Recording checklist (completed upload)
 
-1. Watch and listen to the entire MP4. Replace the repository owner and add actual article/application links.
+1. Review the MP4 and captions. Repository links identify the published source; add article/application links when moderation assigns public URLs.
 2. Upload the individual film or use its chapter in the combined film. Review publication settings yourself. Multiple uploads do not necessarily multiply the contest bonus.
 3. English SRT captions are supplied; short captions are already visible in the picture. Check for duplicate display when enabling subtitles.
 4. Verify the published video without signing in, then add its real URL to the Open Exchange YouTube field and repository README.
