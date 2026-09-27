@@ -11,7 +11,7 @@ Source: [contest announcement](https://community.intersystems.com/post/intersyst
 | OS management                 | Process controls, CPU/memory/disk, devices, database inspection               | `/v2/process*`, `/v2/device*`, `/v2/database*`, protected native telemetry extension                          |
 | Logs                          | Messages, alerts, audit, task history, journal files and API console/activity | native log files through the extension, `/v2/security/audit/records`, `/v2/task/history`, `/v2/journal/files` |
 
-The application includes English installation instructions and a written demonstration walkthrough. Original source code is MIT licensed and published at [Igorandor/harbor](https://github.com/Igorandor/harbor). The Open Exchange application was sent for approval with Submit to Contest selected on September 28, 2026 (Europe/Warsaw). Moderation and contest acceptance remain pending.
+The application includes English installation instructions and a written demonstration walkthrough. Original source code is MIT licensed and published at [Igorandor/harbor](https://github.com/Igorandor/harbor). The Open Exchange application was sent for approval with Submit to Contest selected on September 28, 2026 (Europe/Warsaw). The application is [published on Open Exchange](https://openexchange.intersystems.com/package/Harbor) and listed among the registered applications in contest 48. Later description updates may still await moderation.
 
 ## Technology bonuses
 
@@ -21,7 +21,7 @@ The video is available through the link in [VIDEO.md](VIDEO.md). No bonus award 
 
 ## Submission follow-up
 
-1. Wait for Open Exchange moderation and verify the listing on [contest 48](https://openexchange.intersystems.com/contest/48).
+1. Registration is visible on [contest 48](https://openexchange.intersystems.com/contest/48); check any subsequent moderator feedback.
 2. Finish Developer Community article moderation and add its public URL to the application.
 3. Keep credentials and generated runtime data out of future commits.
 4. Confirm awarded bonuses with the organizer; upload or submission alone does not establish an award.
@@ -32,7 +32,7 @@ Harbor is an administration portal for InterSystems IRIS. Inspect tasks, logs, p
 
 ## Current review status
 
-See [the latest authorization and readiness review](CONTEST_SECURITY_REVIEW.md). The repository is public and the Open Exchange application is pending approval. Participant eligibility and organizer acceptance remain the organizer’s decision. The earlier Harbor foundation was removed from the current Atlas and Waypoint application implementations. Each project now has an independent repository and runtime. Retained history, test ancestry and external references are disclosed in [provenance](PROVENANCE.md); separate contest acceptance remains the organizer's decision.
+See [the latest authorization and readiness review](CONTEST_SECURITY_REVIEW.md). The repository and Open Exchange application are public, and the application appears on the official contest list. Participant eligibility and organizer acceptance remain the organizer’s decision. The earlier Harbor foundation was removed from the current Atlas and Waypoint application implementations. Each project now has an independent repository and runtime. Retained history, test ancestry and external references are disclosed in [provenance](PROVENANCE.md); separate contest acceptance remains the organizer's decision.
 
 ## Developer Community article draft
 

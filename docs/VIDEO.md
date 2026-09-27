@@ -24,7 +24,7 @@ Source and installation: https://github.com/Igorandor/harbor
 
 Companion article: add the published Developer Community URL.
 
-Open Exchange: add the published application URL.
+Open Exchange: https://openexchange.intersystems.com/package/Harbor
 
 Music: Synthwave 15k by The Cynic Project — CC0 1.0 — https://opengameart.org/content/calm-ambient-2-synthwave-15k
 
