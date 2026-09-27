@@ -1,0 +1,83 @@
+# Operational workflows
+
+Harbor uses the signed-in account's native IRIS privileges. Saved operational records belong to that account and a stable instance identity. They are not shared team records. Reopening a case or receipt checks current native access; a saved capture does not preserve revoked privileges.
+
+## Investigate a change
+
+1. Open **Investigations → New investigation**. Give the case a concrete question, severity and optional tags.
+2. In **Captures**, select the relevant fixed sources and record a title such as “Before schedule update”. Each source is read independently. A failed source remains explicitly unavailable beside successful evidence.
+3. Carry out any necessary administrative change using its normal editor. The separate review shows the exact target and fields. **Change history** retains its receipt.
+4. Capture the same sources again. Select the earlier and later captures in **Compare captures**. Source cards distinguish changed, unchanged, unavailable and limited comparisons.
+5. Filter differences by source, change type, path or review status. Search includes value previews only when selected. Values distinguish missing, null, empty string and type changes. Numeric differences are arithmetic deltas, not rates or causal findings.
+6. Start an evidence review for the selected pair. Record an expected, investigate or explained decision with reasoning. Revisions retain earlier decisions in the review history. A conclusion requires all retained differences to be expected or explained and explicit acknowledgement of evidence limits.
+7. Link the administrative change ID in **Related changes**, add any remaining notes and resolve the case. A required checklist item must be completed or explicitly marked not applicable. Resolve before archiving; reopen an archived case before adding evidence.
+
+Captures are immutable. Changing a decision does not change the underlying observations. A review conclusion is the analyst's assessment, not a machine-issued declaration that the instance is healthy. A reopened review retains its previous conclusion in the case timeline.
+
+![Saved evidence review with decisions and conclusion](images/evidence-review-desktop.png)
+
+The same review is available in the [mobile layout](images/evidence-review-mobile.png). The [verification record](VERIFICATION.md) describes the native and browser checks behind these screenshots.
+
+The comparison matches only recognized root inventory identities: native task IDs, journal filenames, and process generations when supplied. Unknown arrays and nested configuration preserve order. A process ID alone is insufficient to identify a process across two captures. Logs and history are bounded windows; entries disappearing between windows do not establish deletion from the underlying source.
+
+Exports include a complete bounded case JSON, a printable case report, and per-comparison JSON, HTML and CSV. The CSV contains retained differences and current decisions; unavailable-source details and comparison limits are in JSON/HTML. Value previews in comparison exports can be clipped. Retained full payloads are available in the case captures. Operational free text may contain sensitive information: inspect it before sharing.
+
+## Reuse an investigation profile
+
+**Investigation profiles** stores a title, description, fixed source selection and checklist. Start from a built-in definition or write your own. Import accepts only the documented profile data; no commands, file paths or arbitrary endpoints are executed.
+
+Each edit creates a new profile revision with a reason. Starting an investigation copies the chosen revision and gives its checklist independent item identities. Updating or archiving the profile cannot rewrite an existing case. Checklist decisions require a note and retain the deciding account and timestamp.
+
+## Verify administrative changes
+
+Harbor prepares changes before sending them. A durable record is saved before dispatch; duplicate dispatches are refused. The gateway serializes its own writes to the same canonical target. This is not a lock held inside IRIS, so another native administrator can still act between the read and write.
+
+Inspect the receipt state:
+
+| State              | Meaning and next action                                                                                                                |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Prepared           | Review exists; it has not dispatched. Execute only after checking its exact target and fields.                                         |
+| Verified           | The relevant observable result matched the expected outcome on readback. This is not a full functional test of an application or task. |
+| Acknowledged       | IRIS accepted the operation but its write-only value or effect cannot be proved through equality.                                      |
+| Uncertain          | The response or readback did not establish the outcome. Inspect and reconcile by reading current state; do not blindly resubmit.       |
+| Rejected/cancelled | Inspect the explanation. The receipt retains the reason and observations.                                                              |
+
+Write-only credentials remain in gateway memory only while the prepared review is valid. They are absent from saved receipts. Restarting the gateway invalidates an unexecuted preparation that needs those credentials. Prepare it again after checking its status; do not treat an old receipt as replayable.
+
+Process actions require native generation identity and capabilities. The active administrator and management routes have additional protection against accidental loss of access. Impact findings are advisory references, not a complete effective-permission proof.
+
+## Inspect runtime, tasks and application dependencies
+
+**Runtime workbench** keeps a bounded browser session of timestamped samples. Configure thresholds for the observed metrics and compare samples with their intervals. Missing metrics remain unknown. Linux host counters do not establish container quotas, and monitor data can be stale. No background alert delivery or automatic repair is implied.
+
+**Task center** joins the native task definition, execution state and a bounded history window. Unknown outcomes remain unknown; duration statistics use only valid timestamp pairs. Native schedule fields are explained without inventing future occurrences. Configuration comparison uses a browser-held baseline and does not modify a task.
+
+See the [task center desktop view](images/task-center-desktop.png) and [mobile view](images/task-center-mobile.png).
+
+**Application inspector** joins native application configuration, namespace, entry resource and default databases. Authentication flags, CORS origins, cookie settings and route relationships identify review points. Actual externally reachable routing depends on your Web Gateway/proxy and application code. The inspector does not fetch arbitrary URLs or certify external accessibility.
+
+## Navigate log files
+
+**Log files** reads only the server's allowed messages/alerts files. A page contains at most 256 KiB and 500 lines. An older-page cursor is signed and tied to the account, instance and file identity. Rotation or truncation invalidates an incompatible cursor instead of silently stitching unrelated files. Refresh from the newest window after such a notice. This is a log viewer, not a full retention or search service.
+
+## Storage and recovery
+
+The gateway stores records below `HARBOR_DATA_DIR`; Compose mounts a dedicated named volume. Keep `IRIS_INSTANCE_ID` stable. Changing it intentionally opens a different record partition. The store uses atomic replacement and optimistic revisions for a **single gateway writer**; do not mount the same data directory into concurrent replicas.
+
+| Bound                                  | Current value                                      |
+| -------------------------------------- | -------------------------------------------------- |
+| Stored record                          | 4,000,000 UTF-8 bytes                              |
+| Collection, per account/instance       | 500 records                                        |
+| Case timeline                          | 200 entries                                        |
+| Case captures                          | 12                                                 |
+| Source payload in each capture         | 200,000 UTF-8 bytes                                |
+| Linked changes per case                | 30                                                 |
+| Evidence reviews per case              | 20                                                 |
+| Retained differences per source        | 200                                                |
+| Examined comparison nodes per source   | 12,000                                             |
+| Comparison depth / value preview       | 14 levels / 1,600 characters                       |
+| Decision revisions per evidence review | 2,000, also subject to the total record byte limit |
+
+When a bound is reached, export and continue in a follow-up investigation. Archive retains data and does not free collection capacity. There is no automatic purge. Stop the gateway and back up its data volume before operator-controlled retention or recovery. Do not manually edit a live record to bypass a conflict or limit. Unreadable records are reported; preserve them before investigating disk or migration problems.
+
+The IRIS data volume needs an IRIS-supported backup procedure. A gateway-data backup is not an IRIS database backup. Saved cases and change receipts are useful operational history, but are neither cryptographically immutable nor a replacement for native IRIS security audit.

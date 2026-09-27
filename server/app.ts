@@ -5,7 +5,12 @@ import helmet from 'helmet';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { resolve } from 'node:path';
 import { z } from 'zod';
-import { ApiError, IrisClient, type Operation } from './upstream.js';
+import { ApiError, IrisClient, validateOperation, type Operation } from './upstream.js';
+import { workspaceRoutes } from './workspace-routes.js';
+import { logRoutes } from './log-routes.js';
+import { taskObservationRoutes } from './task-observations.js';
+import { applicationObservationRoutes } from './application-observations.js';
+import { runtimeObservationRoutes } from './runtime-observations.js';
 import { parameters } from '../shared/schema.js';
 import { captureDiagnostics } from './diagnostics.js';
 import { diagnosticSources, type DiagnosticId } from '../shared/diagnostics.js';
@@ -24,6 +29,8 @@ export type AppOptions = {
   secure?: boolean;
   client?: IrisClient;
   now?: () => number;
+  dataDirectory?: string;
+  instanceId?: string;
 };
 export function createApp(options: AppOptions) {
   const app = express(),
@@ -149,6 +156,16 @@ export function createApp(options: AppOptions) {
     res.json({ ok: true });
   });
   app.get('/api/activity', (_req, res) => res.json(res.locals.session.activity));
+  logRoutes(app, client);
+  taskObservationRoutes(app, client);
+  applicationObservationRoutes(app, client);
+  runtimeObservationRoutes(app, client, options.instanceId ?? new URL(options.irisUrl).origin);
+  workspaceRoutes(
+    app,
+    client,
+    options.dataDirectory ?? resolve('data'),
+    options.instanceId ?? new URL(options.irisUrl).origin,
+  );
   app.post('/api/diagnostics', async (req, res) => {
     const input = z
       .object({
@@ -186,6 +203,12 @@ export function createApp(options: AppOptions) {
       })
       .strict()
       .parse(req.body) as Operation;
+    validateOperation(op);
+    if (op.method !== 'GET' && op.path !== '/v2/security/audit/records')
+      throw new ApiError(
+        409,
+        'Prepare this change through the review endpoint before executing it.',
+      );
     if (
       (op.method === 'GET' || op.path === '/v2/security/audit/records') &&
       parameters(op.path, op.method.toLowerCase()).some((p) => p.name === 'maxRows') &&

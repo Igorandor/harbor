@@ -42,9 +42,27 @@ const admin = await login(username, password);
 const call = (session: Session, path: string, method = 'GET', query = {}, body?: unknown) =>
   request('iris', { path, method, query, body }, session);
 async function adminCall(path: string, method: string, query: object, body?: unknown) {
-  const r = await call(admin, path, method, query, body);
-  assert.equal(r.status, 200, JSON.stringify(r.data));
-  return r.data.data;
+  if (method === 'GET') {
+    const r = await call(admin, path, method, query, body);
+    assert.equal(r.status, 200, JSON.stringify(r.data));
+    return r.data.data;
+  }
+  const prepared = await request('changes', { operation: { path, method, query, body } }, admin);
+  assert.equal(prepared.status, 201, JSON.stringify(prepared.data));
+  const executed = await request(
+    'changes/' + prepared.data.id + '/execute',
+    {
+      revision: prepared.data.revision,
+      confirmation: prepared.data.target,
+    },
+    admin,
+  );
+  assert.equal(executed.status, 200, JSON.stringify(executed.data));
+  assert.ok(
+    ['verified', 'acknowledged'].includes(executed.data.state),
+    JSON.stringify(executed.data),
+  );
+  return executed.data.result;
 }
 let createdRole = false,
   createdUser = false;
@@ -72,14 +90,17 @@ try {
   createdUser = true;
   const operator = await login(name, temporaryPassword);
   assert.equal((await call(operator, '/extension/telemetry')).status, 200);
-  const denied = await call(
-    operator,
-    '/v2/security/role',
-    'PUT',
-    { name: roleName },
+  const denied = await request(
+    'changes',
     {
-      Resources: [{ Name: '%Admin_Secure', Permissions: 'U' }],
+      operation: {
+        path: '/v2/security/role',
+        method: 'PUT',
+        query: { name: roleName },
+        body: { Resources: [{ Name: '%Admin_Secure', Permissions: 'U' }] },
+      },
     },
+    operator,
   );
   assert.equal(denied.status, 403, JSON.stringify(denied.data));
   assert.deepEqual(

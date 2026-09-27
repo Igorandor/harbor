@@ -38,7 +38,7 @@ export function Diagnostics() {
     <>
       <PageHeader
         title="Diagnostic bundle"
-        description="Collect a bounded set of observations for an investigation or handover."
+        description="Collect instance data and logs in one report."
       >
         <button
           className="primary"
@@ -49,7 +49,7 @@ export function Diagnostics() {
         </button>
       </PageHeader>
       <section className="panel diagnostics-setup">
-        <h2>Evidence to collect</h2>
+        <h2>Sources</h2>
         <p>
           No configuration changes are made. Each source uses your current IRIS permissions and
           records its own outcome.
@@ -96,7 +96,7 @@ export function Diagnostics() {
               <h2>
                 {bundle.sections.every((section) => section.status === 'collected')
                   ? 'Sources collected'
-                  : 'Partial evidence'}
+                  : 'Some sources could not be collected'}
               </h2>
               <p>
                 {bundle.instance} · {new Date(bundle.finishedAt).toLocaleString()} ·{' '}

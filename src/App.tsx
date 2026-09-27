@@ -8,6 +8,7 @@ import {
   ChevronDown,
   Command,
   ExternalLink,
+  FileText,
   Globe,
   LayoutDashboard,
   LogOut,
@@ -40,6 +41,13 @@ import { Explorer } from './pages/Explorer';
 
 import { Logs } from './pages/Logs';
 import { Diagnostics } from './pages/Diagnostics';
+import { Changes } from './pages/Changes';
+import { Investigations } from './pages/Investigations';
+import { LogBrowser } from './pages/LogBrowser';
+import { TaskCenter } from './features/tasks/TaskCenter';
+import { ApplicationCenter } from './features/applications/ApplicationCenter';
+import { RuntimeWorkbench } from './pages/RuntimeWorkbench';
+import { InvestigationProfiles } from './pages/InvestigationProfiles';
 
 const navigation = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -51,6 +59,24 @@ const navigation = [
   { id: 'logs', label: 'Logs & activity', icon: Activity },
   { id: 'explorer', label: 'REST explorer', icon: BookOpen },
   { id: 'diagnostics', label: 'Diagnostic bundle', icon: Activity },
+  { id: 'changes', label: 'Change history', icon: Check },
+  { id: 'investigations', label: 'Investigations', icon: Search },
+  { id: 'log-files', label: 'Log files', icon: FileText },
+  { id: 'task-center', label: 'Task center', icon: Workflow },
+  { id: 'application-center', label: 'Application inspector', icon: Globe },
+  { id: 'runtime', label: 'Runtime analysis', icon: Activity },
+  { id: 'profiles', label: 'Investigation profiles', icon: BookOpen },
+];
+const navigationGroups = [
+  { title: 'Monitor', ids: ['overview', 'runtime', 'task-center', 'log-files', 'logs'] },
+  {
+    title: 'Administer',
+    ids: ['application-center', 'apps', 'permissions', 'security', 'tasks', 'system'],
+  },
+  {
+    title: 'Investigate',
+    ids: ['investigations', 'profiles', 'diagnostics', 'changes', 'explorer'],
+  },
 ];
 
 export default function App() {
@@ -163,17 +189,24 @@ export default function App() {
           <Server size={16} />
         </div>
         <nav aria-label="Main navigation">
-          {navigation.map(({ id, label, icon: Icon }) => (
-            <button
-              className={page === id ? 'active' : ''}
-              key={id}
-              onClick={() => navigate(id)}
-              aria-current={page === id ? 'page' : undefined}
-            >
-              <Icon size={18} />
-              <span>{label}</span>
-              {page === id && <span className="nav-active-dot" />}
-            </button>
+          {navigationGroups.map((group) => (
+            <div className="navigation-group" key={group.title}>
+              <span className="navigation-group-title">{group.title}</span>
+              {group.ids
+                .map((id) => navigation.find((item) => item.id === id)!)
+                .map(({ id, label, icon: Icon }) => (
+                  <button
+                    className={page === id ? 'active' : ''}
+                    key={id}
+                    onClick={() => navigate(id)}
+                    aria-current={page === id ? 'page' : undefined}
+                  >
+                    <Icon size={18} />
+                    <span>{label}</span>
+                    {page === id && <span className="nav-active-dot" />}
+                  </button>
+                ))}
+            </div>
           ))}
         </nav>
         <div className="sidebar-bottom">
@@ -201,14 +234,12 @@ export default function App() {
             <IconButton title="Toggle navigation" onClick={() => setMenu((v) => !v)}>
               <Menu size={18} />
             </IconButton>
-            <span>Workspace</span>
-            <span className="crumb-separator">/</span>
             <strong>{navigation.find((n) => n.id === page)?.label ?? 'Overview'}</strong>
           </div>
           <div className="topbar-actions">
             <button
               className="quick-find"
-              aria-label="Go to workspace"
+              aria-label="Find a tool"
               onClick={() => setCommand(true)}
             >
               <Search size={16} />
@@ -253,6 +284,15 @@ export default function App() {
           {page === 'system' && <System {...props} />}
           {page === 'logs' && <Logs />}
           {page === 'explorer' && <Explorer />}
+          {page === 'changes' && <Changes />}
+          {page === 'investigations' && <Investigations />}
+          {page === 'log-files' && <LogBrowser />}
+          {page === 'task-center' && <TaskCenter onManage={() => navigate('tasks')} />}
+          {page === 'application-center' && <ApplicationCenter onManage={navigate} />}
+          {page === 'runtime' && <RuntimeWorkbench onManage={() => navigate('system')} />}
+          {page === 'profiles' && (
+            <InvestigationProfiles onStarted={() => navigate('investigations')} />
+          )}
           <div hidden={page !== 'diagnostics'}>
             <Diagnostics />
           </div>
@@ -280,7 +320,7 @@ function Group({ ids, info, notify }: { ids: string[]; info: any; notify: (s: st
   const [tab, setTab] = useState(ids[0]);
   return (
     <>
-      <div className="tabs group-tabs" aria-label="Workspace sections">
+      <div className="tabs group-tabs" aria-label="Administration sections">
         {ids.map((id) => (
           <button
             key={id}
@@ -348,14 +388,14 @@ function CommandMenu({
 }) {
   const [search, setSearch] = useState('');
   return (
-    <Modal title="Go to workspace" onClose={onClose}>
+    <Modal title="Find a tool" onClose={onClose}>
       <div className="modal-body">
         <div className="search-field">
           <Search size={18} />
           <input
             autoFocus
-            aria-label="Find a workspace"
-            placeholder="Search workspaces…"
+            aria-label="Find a tool"
+            placeholder="Search tools…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />

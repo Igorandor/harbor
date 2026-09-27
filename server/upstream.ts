@@ -66,11 +66,19 @@ export function validateOperation(op: Operation) {
     );
   const method = op.method.toLowerCase();
 
-  if (op.path === '/extension/telemetry' || op.path === '/extension/logs') {
-    if (
-      method !== 'get' ||
-      Object.keys(op.query ?? {}).some((k) => !['source', 'limit'].includes(k))
-    )
+  if (
+    op.path === '/extension/telemetry' ||
+    op.path === '/extension/logs' ||
+    op.path === '/extension/log-catalog' ||
+    op.path === '/extension/log-window'
+  ) {
+    const allowed =
+      op.path === '/extension/log-window'
+        ? ['file', 'offset', 'snapshot', 'identity', 'limit']
+        : op.path === '/extension/log-catalog'
+          ? []
+          : ['source', 'limit'];
+    if (method !== 'get' || Object.keys(op.query ?? {}).some((k) => !allowed.includes(k)))
       throw new ApiError(400, 'Invalid extension request.');
 
     return;

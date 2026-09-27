@@ -8,22 +8,29 @@ Built for the [InterSystems Programming Contest: Build Your Own Management Porta
 
 ## What you can do
 
-| Workspace            | Capabilities                                                                                                                            |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Overview             | Live IRIS monitor values, subsystem health, uptime, backup status and upcoming tasks.                                                   |
-| Web applications     | Create, inspect, edit and delete applications; configure dispatch classes, namespaces, authentication and access resources.             |
-| Access & permissions | Manage users, reset passwords, edit roles and inherited roles, and configure resource grants.                                           |
-| Security & secrets   | Manage wallet collections and secrets, X.509 credentials, TLS configurations, OAuth server definitions, clients and client credentials. |
-| Scheduled tasks      | Create and edit schedules; run, suspend and resume tasks; inspect authoritative execution state.                                        |
-| System resources     | CPU, memory and disk telemetry; process inspection and eligible process controls; device management; database inspection.               |
-| Logs & activity      | System messages, alerts, security audit, task history, journal files and session-local portal activity; filtering and exports.          |
-| REST explorer        | Search the official request catalog and execute read requests with your current account permissions.                                    |
+| Workspace              | Capabilities                                                                                                                                                   |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Overview               | Live IRIS monitor values, subsystem health, uptime, backup status and upcoming tasks.                                                                          |
+| Web applications       | Create, inspect, edit and delete applications; configure dispatch classes, namespaces, authentication and access resources.                                    |
+| Access & permissions   | Manage users, reset passwords, edit roles and inherited roles, and configure resource grants.                                                                  |
+| Security & secrets     | Manage wallet collections and secrets, X.509 credentials, TLS configurations, OAuth server definitions, clients and client credentials.                        |
+| Scheduled tasks        | Create and edit schedules; run, suspend and resume tasks; inspect authoritative execution state.                                                               |
+| System resources       | CPU, memory and disk telemetry; process inspection and eligible process controls; device management; database inspection.                                      |
+| Logs & activity        | System messages, alerts, security audit, task history, journal files and session-local portal activity; filtering and exports.                                 |
+| REST explorer          | Search the official request catalog and execute read requests with your current account permissions.                                                           |
+| Application inspector  | Review native authentication, CORS and cookie settings, access resources, namespace/database dependencies and related routes; inspect native services.         |
+| Task center            | Inspect execution state, bounded task history, duration statistics and native schedule fields; compare an observed configuration with a browser-held baseline. |
+| Runtime workbench      | Compare timestamped telemetry samples, review configurable thresholds and inspect processes with native generation identity.                                   |
+| Log files              | Browse bounded log windows with authenticated older-page cursors, explicit rotation handling and fixed file names.                                             |
+| Change history         | Prepare a specific change, check impact, dispatch once and read back the result; reconcile uncertain outcomes without replaying the write.                     |
+| Investigations         | Retain diagnostic captures, notes, checklists and related changes; compare typed evidence, record decisions and export a report.                               |
+| Investigation profiles | Save and revise reusable diagnostic source/checklist definitions; start an investigation from an immutable copy of a selected revision.                        |
 
-Every editor has a separate review step. Deletions and execution controls require you to type the target identifier. Editing checks for changes made by another administrator before sending an update. These checks reduce accidental overwrites; they are not a server-side transaction or lock.
+Every editor has a separate review step. Deletions and execution controls require you to type the target identifier. Editing checks for changes made by another administrator before sending an update. Each accepted write has a durable receipt and an explicit verified, acknowledged or unresolved outcome. Native external edits can still race the final check; the API does not supply an atomic conditional write.
 
 Light and dark themes, keyboard navigation, a **Ctrl/Cmd+K** workspace switcher, responsive layouts, loading states, empty states and actionable errors are included. Fonts and icons are bundled locally.
 
-## Quick start: complete local installation
+## Quick start
 
 Requirements: Docker Engine/Desktop with Compose v2, at least 4 GB available RAM, and approximately 5 GB free disk space. Linux containers are required. On Windows, start Docker Desktop or a Docker daemon in WSL first.
 
@@ -36,9 +43,9 @@ Open **http://localhost:3100** and sign in:
 - Username: `SuperUser`
 - Password: `HarborLocal-2026!`
 
-This is a known **local demonstration credential**, configured only by the bundled IRIS development image. Both published ports bind to `127.0.0.1`. Do not expose this stack to the public internet. Use your own instance and account for deployment.
+This **public quick-start credential** is configured by the bundled IRIS image. Both published ports bind to `127.0.0.1`. Keep this stack on your machine. For a shared deployment, connect the gateway to your own instance and accounts using the HTTPS configuration below.
 
-The first image build takes several minutes. It installs the small ObjectScript/Embedded Python extension and pins the IRIS Community image by digest. The portal uses a non-root Node.js container. The `iris-data` volume preserves the IRIS manager databases across container replacement.
+The first image build takes several minutes. It installs the ObjectScript/Embedded Python extension and pins the IRIS Community image by digest. The portal uses a non-root Node.js container. The `iris-data` volume preserves IRIS manager databases and `harbor-data` preserves investigation profiles, investigations and change receipts across container replacement.
 
 ```sh
 docker compose ps
@@ -67,7 +74,7 @@ Use IRIS Community **2026.2 with SysAdmin API v2**, or a compatible newer instan
    do $SYSTEM.Status.DisplayError(##class(Harbor.Installer).Install())
    ```
 
-   The installer creates `/api/harbor` with password authentication and `%Admin_Operate` protection. It does **not** change existing account passwords. `iris/configure.script` is only for the disposable Docker demonstration image; never run it on an existing environment.
+   The installer creates `/api/harbor` with password authentication and `%Admin_Operate` protection. It does **not** change existing account passwords. `iris/configure.script` configures the supplied quick-start image; never run it on an existing environment.
 
 3. Install Node.js 22 LTS or newer and configure the portal:
 
@@ -90,6 +97,14 @@ npm start
 
 See [deployment and security](docs/DEPLOYMENT.md) before serving to other users.
 
+For a gateway-only container behind an HTTPS reverse proxy, set `IRIS_URL`, a stable `IRIS_INSTANCE_ID`, and the exact HTTPS `PUBLIC_ORIGIN`, then run:
+
+```sh
+docker compose -f compose.gateway.yaml up -d --build
+```
+
+This configuration starts no IRIS server and seeds no accounts. Deployment mode validates secure cookies and the public origin. Use an HTTPS upstream; a private-network HTTP upstream requires the explicit `ALLOW_PRIVATE_IRIS_HTTP=true` choice. The gateway port remains bound to loopback for the reverse proxy.
+
 ## A five-minute walkthrough
 
 1. Sign in and inspect **Overview**. The system-monitor indicator explains when IRIS statistics are not updating. Values are never replaced with sample numbers.
@@ -100,6 +115,8 @@ See [deployment and security](docs/DEPLOYMENT.md) before serving to other users.
 6. In **System resources**, wait for two telemetry samples to see CPU utilization, then inspect a process. The UI honors IRIS capability flags for suspension and termination.
 7. Open **Logs & activity**, switch between original sources, filter entries and export a source if needed. Security audit queries run asynchronously and are polled until completion.
 8. Use **REST explorer** for less common read requests. Required query parameters are taken from the pinned API contract.
+9. In **Investigations**, open a case and capture the relevant sources before and after a change. **Compare captures** shows typed before/after values and missing sources. Start a review, record the reasoning for each difference and conclude only after unresolved differences have been addressed.
+10. Reopen the investigation after signing in again. Inspect linked receipts in **Change history**; reconcile uncertain results by reading current state. See the [operational workflow guide](docs/OPERATIONS.md) for profiles, bounds and recovery.
 
 ## Development and verification
 

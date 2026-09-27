@@ -62,7 +62,7 @@ export function Collection({
     setEditing(undefined);
     setSelected(undefined);
     resource.refresh();
-    notify('Changes applied to IRIS.');
+    notify('Operation recorded. Open Change history for its verification result.');
   }
 
   return (
@@ -230,6 +230,13 @@ function RecordDetail({
           : action === 'suspend' && entity.id === 'tasks'
             ? { LeaveInQueue: true }
             : undefined,
+        entity.id === 'processes' && resource.data
+          ? {
+              Pid: resource.data.Pid,
+              StartTimeUTC: resource.data.StartTimeUTC,
+              JobNumber: resource.data.JobNumber,
+            }
+          : undefined,
       );
       onChanged();
     } catch (e) {

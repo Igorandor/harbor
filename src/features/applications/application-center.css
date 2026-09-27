@@ -1,0 +1,207 @@
+.application-center {
+  min-width: 0;
+}
+.application-center .header-actions {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.application-center h2 {
+  margin: 0 0 14px;
+  font-size: 18px;
+}
+.application-center label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+}
+.application-center input,
+.application-center select {
+  min-width: 0;
+  width: 100%;
+}
+.application-filter-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) minmax(150px, 1fr);
+  gap: 16px;
+  margin: 0 0 20px;
+}
+.application-pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  font-size: 12px;
+}
+.application-pagination > span {
+  margin-right: auto;
+}
+.application-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.application-summary > div {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 17px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 12px;
+}
+.application-summary > div > span:first-child {
+  color: var(--muted);
+  font-size: 12px;
+}
+.application-summary strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.application-sections {
+  display: grid;
+  gap: 18px;
+}
+.application-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 24px;
+  margin: 18px 0;
+}
+.application-fields > div {
+  min-width: 0;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+.application-fields dt {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 7px;
+  overflow-wrap: anywhere;
+}
+.application-fields dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.application-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.application-heading h2 {
+  margin-bottom: 0;
+}
+.application-findings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.application-findings li {
+  border-top: 1px solid var(--line);
+  padding: 15px 0;
+}
+.application-findings li:first-child {
+  border-top: 0;
+}
+.application-findings li > div {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.application-findings strong {
+  font-size: 14px;
+}
+.application-findings p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.application-findings small {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.application-auth-list {
+  display: grid;
+  list-style: none;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+}
+.application-auth-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.application-auth-list small {
+  margin-left: auto;
+  color: var(--muted);
+}
+.application-notice {
+  border-left: 3px solid var(--accent);
+  background: var(--panel);
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.application-break {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.application-dependency-chain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.application-dependency-chain > div {
+  display: grid;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 18px;
+}
+.application-dependency-chain small {
+  color: var(--muted);
+}
+.application-dependency-chain strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 850px) {
+  .application-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 540px) {
+  .application-filter-row,
+  .application-fields {
+    grid-template-columns: 1fr;
+  }
+  .application-pagination {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .application-pagination > span {
+    flex-basis: 100%;
+  }
+  .application-dependency-chain {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .application-dependency-chain > span {
+    text-align: center;
+    transform: rotate(90deg);
+  }
+  .application-summary > div {
+    padding: 12px;
+  }
+}

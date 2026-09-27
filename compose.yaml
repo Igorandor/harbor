@@ -23,6 +23,11 @@ services:
       PORT: 3100
       PUBLIC_ORIGIN: ${HARBOR_ORIGIN:-http://localhost:3100}
       COOKIE_SECURE: 'false'
+      IRIS_INSTANCE_ID: ${IRIS_INSTANCE_ID:-harbor-evaluation}
+      HARBOR_DATA_DIR: /app/data
+      HARBOR_MODE: evaluation
+    volumes:
+      - harbor-data:/app/data
     ports:
       - '127.0.0.1:${HARBOR_PORT:-3100}:3100'
     depends_on:
@@ -30,3 +35,4 @@ services:
         condition: service_healthy
 volumes:
   iris-data:
+  harbor-data:

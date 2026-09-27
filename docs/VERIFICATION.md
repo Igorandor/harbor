@@ -1,5 +1,32 @@
 # Verification record
 
+## Expansion checkpoint — September 27, 2026
+
+Current source check: `npm run check` passes TypeScript, browser/server builds and **149 tests**. The added coverage includes durable change dispatch/readback/reconciliation, process generation and canonical-target guards, workspace isolation/revision conflicts, bounded file reads, log windows/cursors, reusable investigation profiles, runtime analysis, application inspection, task history and typed evidence reviews. `npm audit --omit=dev` reports zero production dependency vulnerabilities at this checkpoint.
+
+Final source-authorization review corrected OAuth resource-server receipt access: those records now use the native security probe, while only `/oauth2/client/` records use the OAuth client probe. Four HTTP regressions verify detail, reconciliation and listing after revocation for OAuth resource servers, OAuth clients, wallet and device records. Other native families stay authorized in these fixtures so an incorrectly broad authorization mapping cannot pass by accident. Full checks passed again after this correction; installed-gateway checks below identify their earlier execution point.
+
+Evidence-review tests verify missing/null/type distinctions, numeric deltas, bounded comparisons and previews, known inventory identity matching, preservation of unknown array order, PID reuse, export escaping/formula protection, saved decisions and prior reasoning, conclusion/reopen lifecycle, rejection of stale revisions and foreign captures, account/instance isolation, and current source-privilege checks on the HTTP routes. A conclusion requires explicit acknowledgement of source and comparison limits. These are deterministic fixtures, not a security certification.
+
+Native gateway checks during this expansion verified case creation/capture/revision/relogin/archive, older log pages and invalid-path rejection, task observations, and disposable resource creation/edit/deletion with readback plus duplicate/stale/raw-write guards. On September 27 at 10:01 UTC, a real evidence-review workflow captured host capacity twice, compared seven typed differences, refused premature conclusion with HTTP 409, persisted all decisions, rejected a stale reopen, retained decisions/history across logout/login, and completed reopen/reconclude/resolve/archive. The archived investigation is `2f61787e-7844-4ac1-aecc-65ba7f34345e`; no IRIS administrative mutation was needed for that comparison.
+
+Actual-browser review confirmed the seven expected decisions, zero unreviewed differences, conclusion and decision history. Desktop and 390-pixel mobile layouts were inspected; the mobile evidence view had matching 375-pixel client and scroll widths. Application and task inspector views were also checked. Screenshots: [evidence review desktop](images/evidence-review-desktop.png), [evidence review mobile](images/evidence-review-mobile.png), [task center desktop](images/task-center-desktop.png), [task center mobile](images/task-center-mobile.png), [application inspector mobile](images/application-inspector-mobile.png).
+
+The following existing native suites passed again on September 27 around 10:09 UTC against the supplied IRIS Community instance and rebuilt gateway. These were checks of an existing installation, not a new-volume installation; no configuration reset or volume replacement was performed.
+
+| Command                      | Rechecked scope                                                                                                                                                                                                                                                       |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run test:install`       | Production static page/CSP, login/session/CSRF, native identity, applications, tasks, telemetry, logs and logout through the gateway.                                                                                                                                 |
+| `npm run test:authorization` | Disposable restricted user/role; telemetry allowed; privilege escalation refused at change preparation; native database access denial preserved as 403; revoked privileges effective in the same session and direct extension. User/role removed and sessions closed. |
+| `npm run test:live`          | Native lists/details and disposable resource, role, application, wallet collection, device and TLS create/edit/read/delete; all six cleanup operations passed; telemetry/log/history/journal/audit reads passed.                                                      |
+| `npm run test:workflows`     | Disposable user disablement, wallet metadata-only listing, task partial update preserving unrelated fields, task suspend/resume/run, OAuth server/client/secret configuration and completed asynchronous audit job. Cleanup finished without errors.                  |
+
+The authorization script was updated to use the current prepare/execute gateway workflow. Its former raw `/api/iris` write path is intentionally unavailable; the test change preserves the denied-escalation check at the currently supported boundary. TypeScript and `git diff --check` pass after this test-only adjustment. Native direct-client CRUD suites supplement, rather than substitute for, the separate gateway dispatch/reconciliation checks.
+
+The Windows test account could not create a symbolic-link fixture (`EPERM`); the oversized-file rejection check passed and the implementation rejects symlinks before bounded descriptor reads. Linux-specific verification and final packaging are recorded separately when complete. Build output currently reports a large client bundle; this is a delivery-size warning, not a failing build.
+
+The entries below describe earlier, pre-expansion checkpoints. Their old totals and screenshots must not be read as final validation of newly added features.
+
 Verified September 26, 2026 against a real, disposable InterSystems IRIS Community **2026.2 build 221U** instance, using the image digest pinned in `iris/Dockerfile`.
 
 ## Reproducible checks

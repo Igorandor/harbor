@@ -1,0 +1,717 @@
+import { useEffect, useState } from 'react';
+import { Download, FilePlus2, Search, RefreshCw, Camera, X } from 'lucide-react';
+import { request, download } from '../api';
+import { ErrorBox, Loading, Modal, PageHeader } from '../components/ui';
+import { DataValue } from '../components/DataView';
+import { InvestigationChecklist } from '../components/InvestigationChecklist';
+import { EvidenceWorkbench } from '../components/EvidenceWorkbench';
+import { diagnosticSources, type DiagnosticId } from '../../shared/diagnostics';
+import {
+  caseSeverity,
+  caseStatus,
+  type Investigation,
+  type CaseSummary,
+  type CaseCapture,
+} from '../../shared/investigation';
+
+type Listing = { records: CaseSummary[]; unreadable: string[]; total: number };
+export function Investigations() {
+  const [listing, setListing] = useState<Listing>(),
+    [selected, setSelected] = useState<Investigation>();
+  const [creating, setCreating] = useState(false),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState('');
+  const [query, setQuery] = useState(''),
+    [status, setStatus] = useState('active');
+  async function load() {
+    setBusy(true);
+    setError('');
+    try {
+      setListing(await request<Listing>('investigations'));
+    } catch (error) {
+      setError((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  useEffect(() => {
+    void load();
+  }, []);
+  async function inspect(id: string) {
+    setBusy(true);
+    setError('');
+    try {
+      setSelected(await request<Investigation>('investigations/' + id));
+    } catch (error) {
+      setError((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function change(action: string, input: Record<string, unknown>) {
+    if (!selected) return false;
+    setBusy(true);
+    setError('');
+    try {
+      setSelected(
+        await request<Investigation>('investigations/' + selected.id + '/' + action, {
+          ...input,
+          revision: selected.revision,
+        }),
+      );
+      setListing(await request<Listing>('investigations'));
+      return true;
+    } catch (error) {
+      setError((error as Error).message);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+  const records = (listing?.records ?? []).filter(
+    (record) =>
+      (status === 'all' ||
+        (status === 'active'
+          ? !['resolved', 'archived'].includes(record.status)
+          : record.status === status)) &&
+      (record.title + ' ' + record.description + ' ' + record.tags.join(' '))
+        .toLowerCase()
+        .includes(query.toLowerCase()),
+  );
+  return (
+    <>
+      <PageHeader
+        title="Investigations"
+        description="Keep diagnostic captures, notes and related changes together."
+      >
+        <button disabled={busy} onClick={() => void load()}>
+          <RefreshCw size={16} /> Refresh
+        </button>
+        <button className="primary" onClick={() => setCreating(true)}>
+          <FilePlus2 size={16} /> New investigation
+        </button>
+      </PageHeader>
+      {error && <ErrorBox error={error} />}
+      {listing?.unreadable.length ? (
+        <div className="notice warning">
+          {listing.unreadable.length} stored investigations could not be read. Preserve the data
+          directory before recovery.
+        </div>
+      ) : null}
+      <div className="operations-split">
+        <section className="panel record-index" aria-label="Investigations">
+          <label className="search-field">
+            <Search size={16} />
+            <input
+              aria-label="Search investigations"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Title, description or tag"
+            />
+          </label>
+          <label className="field">
+            Status
+            <select value={status} onChange={(event) => setStatus(event.target.value)}>
+              <option value="active">Active investigations</option>
+              <option value="all">All investigations</option>
+              {caseStatus.map((value) => (
+                <option key={value}>{value}</option>
+              ))}
+            </select>
+          </label>
+          {!listing && busy ? <Loading /> : null}
+          {records.map((record) => (
+            <button
+              key={record.id}
+              className={'record-choice ' + (selected?.id === record.id ? 'active' : '')}
+              onClick={() => void inspect(record.id)}
+            >
+              <strong>{record.title}</strong>
+              <span>
+                {record.severity} · {record.status}
+              </span>
+              <small>
+                {record.captureCount} captures · {record.noteCount} entries
+              </small>
+              <small>{new Date(record.updatedAt).toLocaleString()}</small>
+            </button>
+          ))}
+          {listing && !records.length ? (
+            <p className="padded muted">No investigations match this view.</p>
+          ) : null}
+        </section>
+        {selected ? (
+          <CaseDetail
+            key={selected.id}
+            record={selected}
+            busy={busy}
+            onChange={change}
+            onRefresh={() => void inspect(selected.id)}
+            onClose={() => setSelected(undefined)}
+          />
+        ) : (
+          <section className="panel record-workbench">
+            <div className="atlas-empty">
+              <Search size={32} />
+              <h2>Select an investigation</h2>
+              <p>
+                Create an investigation to retain captures and notes across gateway restarts.
+                Records are scoped to your IRIS account and this instance.
+              </p>
+            </div>
+          </section>
+        )}
+      </div>
+      {creating ? (
+        <NewCase
+          onClose={() => setCreating(false)}
+          onCreated={(value) => {
+            setSelected(value);
+            setCreating(false);
+            void load();
+          }}
+        />
+      ) : null}
+    </>
+  );
+}
+function NewCase({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (record: Investigation) => void;
+}) {
+  const [title, setTitle] = useState(''),
+    [description, setDescription] = useState(''),
+    [severity, setSeverity] = useState<Investigation['severity']>('minor'),
+    [tags, setTags] = useState(''),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState('');
+  async function create(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      onCreated(
+        await request<Investigation>('investigations', {
+          title,
+          description,
+          severity,
+          tags: tags
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean),
+        }),
+      );
+    } catch (error) {
+      setError((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Modal
+      title="New investigation"
+      onClose={() => {
+        if (!busy) onClose();
+      }}
+    >
+      <form onSubmit={(event) => void create(event)}>
+        <div className="modal-body">
+          {error ? <ErrorBox error={error} /> : null}
+          <label className="field">
+            Title
+            <input
+              required
+              minLength={3}
+              maxLength={160}
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            What needs investigation?
+            <textarea
+              required
+              rows={5}
+              maxLength={4000}
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            Severity
+            <select
+              value={severity}
+              onChange={(event) => setSeverity(event.target.value as Investigation['severity'])}
+            >
+              {caseSeverity.map((value) => (
+                <option key={value}>{value}</option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            Tags
+            <input
+              value={tags}
+              maxLength={480}
+              onChange={(event) => setTags(event.target.value)}
+              placeholder="Comma-separated, up to 12 tags"
+            />
+          </label>
+        </div>
+        <footer>
+          <button type="button" disabled={busy} onClick={onClose}>
+            Cancel
+          </button>
+          <button className="primary" disabled={busy} type="submit">
+            Create investigation
+          </button>
+        </footer>
+      </form>
+    </Modal>
+  );
+}
+function CaseDetail({
+  record,
+  busy,
+  onChange,
+  onRefresh,
+  onClose,
+}: {
+  record: Investigation;
+  busy: boolean;
+  onChange: (action: string, input: Record<string, unknown>) => Promise<boolean>;
+  onRefresh: () => void;
+  onClose: () => void;
+}) {
+  const [view, setView] = useState('timeline'),
+    [note, setNote] = useState(''),
+    [nextStatus, setNextStatus] = useState<Investigation['status']>('investigating');
+  const [captureTitle, setCaptureTitle] = useState(''),
+    [sources, setSources] = useState<DiagnosticId[]>(
+      record.profile?.sources ?? ['identity', 'health', 'capacity', 'messages'],
+    );
+  const [captureId, setCaptureId] = useState(''),
+    [changeId, setChangeId] = useState('');
+  const selectedCapture =
+    record.captures.find((capture) => capture.id === captureId) ?? record.captures.at(-1);
+  const editable = record.status !== 'archived';
+  useEffect(() => {
+    setNextStatus(
+      record.status === 'archived' ? 'open' : record.status === 'open' ? 'investigating' : 'open',
+    );
+  }, [record.status]);
+  return (
+    <section className="panel record-workbench">
+      <div className="section-heading">
+        <div>
+          <h2>{record.title}</h2>
+          <p>{record.description}</p>
+        </div>
+        <button aria-label="Close investigation" onClick={onClose}>
+          <X size={16} />
+        </button>
+      </div>
+      <div className="record-meta">
+        <strong>{record.severity}</strong>
+        <span>{record.status}</span>
+        <span>{record.owner}</span>
+        <span>{record.instance}</span>
+      </div>
+      <div className="inline-actions padded">
+        <button disabled={busy} onClick={onRefresh}>
+          <RefreshCw size={16} /> Refresh
+        </button>
+        <button onClick={() => download('harbor-investigation-' + record.id + '.json', record)}>
+          <Download size={16} /> Export investigation
+        </button>
+        <button onClick={() => printCase(record)}>
+          <Download size={16} /> Download report
+        </button>
+      </div>
+      <nav className="tabs" aria-label="Investigation sections">
+        {[
+          ['timeline', 'Timeline'],
+          ['checklist', 'Checklist'],
+          ['captures', 'Captures'],
+          ['compare', 'Compare captures'],
+          ['status', 'Status'],
+          ['changes', 'Related changes'],
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            aria-pressed={view === id}
+            className={view === id ? 'active' : ''}
+            onClick={() => setView(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+      {view === 'checklist' ? (
+        <InvestigationChecklist
+          record={record}
+          busy={busy}
+          onUpdate={(itemId, state, note) => onChange('checklist', { itemId, state, note })}
+        />
+      ) : null}
+      {view === 'timeline' ? (
+        <>
+          {editable ? (
+            <form
+              className="record-actions"
+              onSubmit={async (event) => {
+                event.preventDefault();
+                if (await onChange('notes', { text: note })) setNote('');
+              }}
+            >
+              <label className="field">
+                Add a note
+                <textarea
+                  required
+                  maxLength={4000}
+                  rows={4}
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                  placeholder="What changed, what was checked, and the next action"
+                />
+              </label>
+              <button className="primary" disabled={busy || !note.trim()}>
+                Save note
+              </button>
+            </form>
+          ) : null}
+          <ol className="record-timeline">
+            {[...record.notes].reverse().map((entry) => (
+              <li key={entry.id}>
+                <time>{new Date(entry.at).toLocaleString()}</time>
+                <strong>
+                  {entry.author} · {entry.kind}
+                </strong>
+                <p>{entry.text}</p>
+                {entry.captureId ? (
+                  <button
+                    className="text-link"
+                    onClick={() => {
+                      setCaptureId(entry.captureId!);
+                      setView('captures');
+                    }}
+                  >
+                    Open capture
+                  </button>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+          {!record.notes.length ? <p className="padded muted">No timeline entries yet.</p> : null}
+        </>
+      ) : null}
+      {view === 'captures' ? (
+        <>
+          {!['resolved', 'archived'].includes(record.status) ? (
+            <form
+              className="record-actions"
+              onSubmit={async (event) => {
+                event.preventDefault();
+                if (await onChange('captures', { title: captureTitle, sources }))
+                  setCaptureTitle('');
+              }}
+            >
+              <h3>Capture current data</h3>
+              <label className="field">
+                Capture title
+                <input
+                  required
+                  maxLength={120}
+                  value={captureTitle}
+                  onChange={(event) => setCaptureTitle(event.target.value)}
+                  placeholder="Before maintenance, after restart…"
+                />
+              </label>
+              <div className="diagnostic-sources">
+                {diagnosticSources.map((source) => (
+                  <label key={source.id}>
+                    <input
+                      type="checkbox"
+                      checked={sources.includes(source.id)}
+                      onChange={(event) =>
+                        setSources(
+                          event.target.checked
+                            ? [...sources, source.id]
+                            : sources.filter((id) => id !== source.id),
+                        )
+                      }
+                    />
+                    {source.title}
+                  </label>
+                ))}
+              </div>
+              <button
+                className="primary"
+                disabled={busy || !sources.length || !captureTitle.trim()}
+              >
+                <Camera size={16} /> Capture selected sources
+              </button>
+              <small>{record.captures.length} / 12 captures</small>
+            </form>
+          ) : null}
+          <div className="padded">
+            <label className="field">
+              Saved capture
+              <select
+                value={selectedCapture?.id ?? ''}
+                onChange={(event) => setCaptureId(event.target.value)}
+              >
+                <option value="" disabled>
+                  Choose a capture
+                </option>
+                {record.captures.map((capture) => (
+                  <option key={capture.id} value={capture.id}>
+                    {capture.title} · {new Date(capture.bundle.finishedAt).toLocaleString()}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {selectedCapture ? (
+            <CaptureView capture={selectedCapture} />
+          ) : (
+            <p className="padded muted">No data has been captured for this investigation.</p>
+          )}
+        </>
+      ) : null}
+      {view === 'compare' ? (
+        <EvidenceWorkbench record={record} busy={busy} onChange={onChange} />
+      ) : null}
+      {view === 'status' ? (
+        <form
+          className="record-actions"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            if (await onChange('status', { status: nextStatus, reason: note })) setNote('');
+          }}
+        >
+          <h3>Change investigation status</h3>
+          <p>
+            Current status: <strong>{record.status}</strong>
+          </p>
+          {record.resolution ? <blockquote>{record.resolution}</blockquote> : null}
+          <label className="field">
+            New status
+            <select
+              value={nextStatus}
+              onChange={(event) => setNextStatus(event.target.value as Investigation['status'])}
+            >
+              {caseStatus
+                .filter((value) => value !== record.status)
+                .map((value) => (
+                  <option key={value}>{value}</option>
+                ))}
+            </select>
+          </label>
+          <label className="field">
+            Reason or resolution
+            <textarea
+              required
+              rows={4}
+              maxLength={4000}
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+            />
+          </label>
+          <button className="primary" disabled={busy || !note.trim()}>
+            Save status
+          </button>
+          <p className="scope-note">
+            Resolve an investigation before archiving. Archived records can be reopened; their
+            captures and prior notes remain unchanged.
+          </p>
+        </form>
+      ) : null}
+      {view === 'changes' ? (
+        <div className="record-actions">
+          <h3>Related administrative changes</h3>
+          <p>
+            Link a change record from Change history to document an action taken during this
+            investigation.
+          </p>
+          {record.linkedChanges.map((id) => (
+            <p key={id}>
+              <code>{id}</code>
+            </p>
+          ))}
+          {editable ? (
+            <form
+              onSubmit={async (event) => {
+                event.preventDefault();
+                if (await onChange('changes', { changeId, note })) {
+                  setChangeId('');
+                  setNote('');
+                }
+              }}
+            >
+              <label className="field">
+                Change record ID
+                <input
+                  required
+                  value={changeId}
+                  onChange={(event) => setChangeId(event.target.value)}
+                  maxLength={36}
+                />
+              </label>
+              <label className="field">
+                Context
+                <textarea
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                  maxLength={4000}
+                  rows={3}
+                />
+              </label>
+              <button disabled={busy || changeId.length !== 36}>Link change</button>
+            </form>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+function CaptureView({ capture }: { capture: CaseCapture }) {
+  return (
+    <div className="padded">
+      <h3>{capture.title}</h3>
+      <p>
+        {new Date(capture.bundle.finishedAt).toLocaleString()} · {capture.capturedBy}
+      </p>
+      {capture.bundle.sections.map((section) => (
+        <details key={section.id} className="capture-source">
+          <summary>
+            <strong>{section.title}</strong>
+            <span>{section.status}</span>
+          </summary>
+          <p>{section.notice}</p>
+          <small>
+            {section.path} · {section.observedAt} · {section.elapsedMs} ms
+          </small>
+          {section.data !== undefined ? <DataValue value={section.data} /> : null}
+        </details>
+      ))}
+      <details className="scope-note">
+        <summary>Capture limits</summary>
+        <ul>
+          {capture.bundle.limits.map((limit) => (
+            <li key={limit}>{limit}</li>
+          ))}
+        </ul>
+      </details>
+    </div>
+  );
+}
+function printCase(record: Investigation) {
+  const escape = (value: unknown) =>
+    String(value ?? '').replace(
+      /[&<>"']/g,
+      (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!,
+    );
+  const html =
+    '<!doctype html><html lang="en"><meta charset="utf-8"><title>' +
+    escape(record.title) +
+    '</title><style>body{font:16px/1.5 system-ui;max-width:1000px;margin:40px auto;padding:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere}section{border-top:1px solid #bbb;padding-top:20px}small{color:#555}</style><h1>' +
+    escape(record.title) +
+    '</h1><p>' +
+    escape(record.description) +
+    '</p><p>' +
+    escape(record.status) +
+    ' · ' +
+    escape(record.severity) +
+    ' · ' +
+    escape(record.instance) +
+    '</p><h2>Timeline</h2>' +
+    record.notes
+      .map(
+        (note) =>
+          '<section><small>' +
+          escape(note.at) +
+          ' · ' +
+          escape(note.author) +
+          '</small><p>' +
+          escape(note.text) +
+          '</p></section>',
+      )
+      .join('') +
+    '<h2>Checklist</h2>' +
+    (record.checklist
+      ?.map(
+        (item) =>
+          '<section><h3>' +
+          escape(item.title) +
+          '</h3><p>' +
+          escape(item.instruction) +
+          '</p><p>' +
+          escape(item.state) +
+          ' · ' +
+          (item.required ? 'Required' : 'Optional') +
+          '</p><p>' +
+          escape(item.note) +
+          '</p><small>' +
+          escape(item.updatedBy) +
+          ' · ' +
+          escape(item.updatedAt) +
+          '</small></section>',
+      )
+      .join('') || '<p>No checklist attached.</p>') +
+    '<h2>Evidence reviews</h2>' +
+    (record.evidenceReviews
+      ?.map(
+        (review) =>
+          '<section><h3>' +
+          escape(review.title) +
+          '</h3><p>' +
+          escape(review.beforeId) +
+          ' → ' +
+          escape(review.afterId) +
+          '</p><p>' +
+          (review.conclusion ? 'Concluded' : 'Open') +
+          ' · ' +
+          review.decisions.length +
+          ' current decisions · ' +
+          review.history.length +
+          ' decision revisions</p>' +
+          (review.conclusion
+            ? '<blockquote>' +
+              escape(review.conclusion.text) +
+              '</blockquote><small>' +
+              escape(review.conclusion.author) +
+              ' · ' +
+              escape(review.conclusion.at) +
+              '</small>'
+            : '') +
+          '<pre>' +
+          escape(JSON.stringify(review.decisions, null, 2)) +
+          '</pre></section>',
+      )
+      .join('') || '<p>No evidence reviews saved.</p>') +
+    '<h2>Related changes</h2><ul>' +
+    record.linkedChanges.map((id) => '<li>' + escape(id) + '</li>').join('') +
+    '</ul>' +
+    '<h2>Captures</h2>' +
+    record.captures
+      .map(
+        (capture) =>
+          '<section><h3>' +
+          escape(capture.title) +
+          '</h3><pre>' +
+          escape(JSON.stringify(capture.bundle, null, 2)) +
+          '</pre></section>',
+      )
+      .join('') +
+    '</html>';
+  const url = URL.createObjectURL(new Blob([html], { type: 'text/html' })),
+    anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = 'harbor-investigation-' + record.id + '.html';
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

@@ -1,4 +1,5 @@
 import type { RecordData } from '../shared/schema';
+import type { ChangeRecord } from '../shared/change-record';
 export type ApiResult<T = any> = { data: T; status: number; console: string[]; asyncId?: string };
 let csrf = '';
 export class RequestError extends Error {
@@ -37,7 +38,17 @@ export async function iris<T = any>(
   query: Record<string, string> = {},
   method: 'GET' | 'PUT' | 'POST' | 'DELETE' = 'GET',
   body?: RecordData,
+  expected?: Record<string, unknown>,
 ): Promise<ApiResult<T>> {
+  if (method !== 'GET' && path !== '/v2/security/audit/records') {
+    const prepared = await prepareChange({ path, query, method, body }, expected);
+    const change = await executeChange(prepared);
+    return {
+      data: change.result as T,
+      status: change.nativeStatus ?? 200,
+      console: [change.explanation],
+    };
+  }
   const result = await request<ApiResult<T>>('iris', { path, method, query, body });
   if (result.asyncId) {
     for (let i = 0; i < 20; i++) {
@@ -61,6 +72,30 @@ export async function iris<T = any>(
     );
   }
   return result;
+}
+export async function prepareChange(
+  operation: {
+    path: string;
+    method: 'PUT' | 'POST' | 'DELETE';
+    query?: Record<string, string>;
+    body?: RecordData;
+  },
+  expected?: Record<string, unknown>,
+) {
+  return request<ChangeRecord>('changes', { operation, expected });
+}
+export async function executeChange(prepared: ChangeRecord): Promise<ChangeRecord> {
+  const change = await request<ChangeRecord>('changes/' + prepared.id + '/execute', {
+    revision: prepared.revision,
+    confirmation: prepared.target,
+  });
+  window.dispatchEvent(new CustomEvent('change-recorded', { detail: change }));
+  if (!['verified', 'acknowledged'].includes(change.state))
+    throw new RequestError(
+      change.explanation + ' Open Change history to inspect or reconcile record ' + change.id + '.',
+      409,
+    );
+  return change;
 }
 export function download(name: string, value: unknown) {
   const blob = new Blob([typeof value === 'string' ? value : JSON.stringify(value, null, 2)], {

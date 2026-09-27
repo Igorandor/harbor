@@ -15,7 +15,9 @@ import {
 
 import { label, type Entity } from '../../shared/catalog';
 
-import { iris } from '../api';
+import { prepareChange, executeChange, request } from '../api';
+import type { ChangeRecord } from '../../shared/change-record';
+import { ChangeImpact } from './ChangeImpact';
 
 import { taskDefaults } from '../../shared/task-defaults';
 
@@ -341,6 +343,7 @@ export function Editor({
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [discover, setDiscover] = useState(true);
+  const [prepared, setPrepared] = useState<ChangeRecord>();
   const payload = Object.fromEntries(
     Object.entries(form).filter(
       ([k, v]) =>
@@ -355,24 +358,11 @@ export function Editor({
     (p) => p.required && p.name === entity.param,
   );
 
-  async function save() {
+  async function prepare() {
     setBusy(true);
     setError('');
 
     try {
-      if (editing && !entity.noDetail) {
-        const latest = await iris(path, { [entity.param!]: identity });
-
-        if (
-          Object.keys(payload).some(
-            (k) => JSON.stringify(latest.data[k]) !== JSON.stringify(initial?.[k]),
-          )
-        )
-          throw new Error(
-            'This record changed on the server while you were editing. Close this form and reload the record before saving.',
-          );
-      }
-
       const body =
         entity.id === 'users' && !editing
           ? { User: payload, Password: password }
@@ -381,21 +371,56 @@ export function Editor({
             : entity.id === 'certificates' && !editing
               ? { ...payload, Alias: name.trim() }
               : payload;
-      await iris(
-        path,
+      const review = await prepareChange(
         {
-          ...(needIdentity ? { [entity.param!]: name.trim() } : {}),
-          ...(entity.id === 'oauthServers' && !editing && discover ? { discover: '1' } : {}),
+          path,
+          method,
+          body,
+          query: {
+            ...(needIdentity ? { [entity.param!]: name.trim() } : {}),
+            ...(entity.id === 'oauthServers' && !editing && discover ? { discover: '1' } : {}),
+          },
         },
-        method,
-        body,
+        editing && !entity.noDetail
+          ? Object.fromEntries(
+              Object.keys(payload)
+                .filter((key) => !sensitive(key))
+                .map((key) => [key, initial?.[key]]),
+            )
+          : undefined,
       );
-      onSaved();
+      setPrepared(review);
+      setStep('review');
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setBusy(false);
     }
+  }
+  async function save() {
+    if (!prepared) return;
+    setBusy(true);
+    setError('');
+    try {
+      await executeChange(prepared);
+      onSaved();
+    } catch (error) {
+      setError((error as Error).message);
+      setPrepared(undefined);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function back() {
+    if (prepared) {
+      try {
+        await request('changes/' + prepared.id + '/cancel', { revision: prepared.revision });
+      } catch {
+        /* A prepared review expires without dispatch if it cannot be canceled. */
+      }
+    }
+    setPrepared(undefined);
+    setStep('edit');
   }
 
   return (
@@ -424,7 +449,7 @@ export function Editor({
               setError('No fields have changed.');
               return;
             }
-            setStep('review');
+            void prepare();
           }}
         >
           <div className="modal-body form-grid">
@@ -515,14 +540,15 @@ export function Editor({
             <button type="button" onClick={onClose}>
               Cancel
             </button>
-            <button className="primary" type="submit">
-              Review changes <ArrowRight size={16} />
+            <button className="primary" type="submit" disabled={busy}>
+              {busy ? 'Preparing review…' : 'Review changes'} <ArrowRight size={16} />
             </button>
           </footer>
         </form>
       ) : (
         <>
           <div className="modal-body">
+            {prepared?.impact && <ChangeImpact impact={prepared.impact} />}
             <div className="notice">
               {editing
                 ? 'Only the changed fields will be sent.'
@@ -567,10 +593,10 @@ export function Editor({
             </table>
           </div>
           <footer>
-            <button disabled={busy} onClick={() => setStep('edit')}>
+            <button disabled={busy} onClick={() => void back()}>
               <ArrowLeft size={16} /> Back
             </button>
-            <button className="primary" disabled={busy} onClick={save}>
+            <button className="primary" disabled={busy || !prepared} onClick={save}>
               {busy ? 'Applying…' : 'Apply changes'} <Check size={16} />
             </button>
           </footer>

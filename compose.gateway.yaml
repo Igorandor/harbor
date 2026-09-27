@@ -1,0 +1,22 @@
+name: harbor-gateway
+services:
+  portal:
+    build: .
+    restart: unless-stopped
+    environment:
+      IRIS_URL: ${IRIS_URL:?Set the existing IRIS origin}
+      IRIS_INSTANCE_ID: ${IRIS_INSTANCE_ID:?Set a stable instance identity}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:?Set the exact HTTPS public origin}
+      COOKIE_SECURE: 'true'
+      HARBOR_MODE: deployment
+      ALLOW_PRIVATE_IRIS_HTTP: ${ALLOW_PRIVATE_IRIS_HTTP:-false}
+      HARBOR_DATA_DIR: /app/data
+      HOST: 0.0.0.0
+      PORT: 3100
+    ports:
+      - '127.0.0.1:${HARBOR_PORT:-3100}:3100'
+    volumes:
+      - harbor-records:/app/data
+    stop_grace_period: 30s
+volumes:
+  harbor-records:

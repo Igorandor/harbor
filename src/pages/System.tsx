@@ -15,16 +15,11 @@ export function System({ info, notify }: { info: any; notify: (s: string) => voi
   useEffect(() => {
     const next = state.data?.cpu,
       old = previous.current;
-    if (next && old && next.totalTicks > old.totalTicks)
-      setCpu(
-        Math.max(
-          0,
-          Math.min(
-            100,
-            100 * (1 - (next.idleTicks - old.idleTicks) / (next.totalTicks - old.totalTicks)),
-          ),
-        ),
-      );
+    const total = next?.totalTicks - old?.totalTicks;
+    const idle = next?.idleTicks - old?.idleTicks;
+    setCpu(Number.isFinite(total) && Number.isFinite(idle) && total > 0 && idle >= 0 && idle <= total
+      ? 100 * (1 - idle / total)
+      : undefined);
     previous.current = next;
   }, [state.data]);
   const d = state.data;

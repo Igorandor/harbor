@@ -7,6 +7,8 @@ XData UrlMap
 <Routes>
   <Route Url="/telemetry" Method="GET" Call="Telemetry" />
   <Route Url="/logs" Method="GET" Call="Logs" />
+  <Route Url="/log-catalog" Method="GET" Call="LogCatalog" />
+  <Route Url="/log-window" Method="GET" Call="LogWindow" />
 </Routes>
 }
 ClassMethod OnPreDispatch(pUrl As %String, pMethod As %String, ByRef pContinue As %Boolean) As %Status
@@ -34,6 +36,23 @@ ClassMethod Logs() As %Status
         Quit $$$OK
     }
     Write ##class(Harbor.Telemetry).Logs(source,+$Get(%request.Data("limit",1),200))
+    Quit $$$OK
+}
+ClassMethod LogCatalog() As %Status
+{
+    Set %response.ContentType = "application/json"
+    Write ##class(Harbor.LogReader).Catalog()
+    Quit $$$OK
+}
+ClassMethod LogWindow() As %Status
+{
+    Set %response.ContentType = "application/json"
+    Set result=##class(Harbor.LogReader).Window($Get(%request.Data("file",1)), $Get(%request.Data("offset",1)), $Get(%request.Data("snapshot",1)), $Get(%request.Data("identity",1)), +$Get(%request.Data("limit",1),200))
+    Set parsed={}.%FromJSON(result)
+    If parsed.%IsDefined("status") {
+        Set %response.Status=parsed.status_" Log request rejected"
+    }
+    Write result
     Quit $$$OK
 }
 }
