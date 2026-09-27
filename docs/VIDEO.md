@@ -1,20 +1,20 @@
 # Video publication kit
 
-## Status
+## Prepared files
 
-An English narrated video and subtitles have been prepared locally as `harbor-walkthrough.mp4` and `harbor-walkthrough.srt`. They are delivered separately from the source repository. No YouTube URL is available yet, and no video bonus is claimed. A combined three-project film is also available in the delivery bundle.
+The revised Harbor walkthrough is 84 seconds long, with instrumental CC0 music and brief English captions. There is no spoken narration. The MP4, SRT and poster are delivered separately from this source repository. No public video URL or awarded bonus is claimed.
 
-The video is an edited sequence of actual application screens, with offline synthesized English narration. It is not a continuous screen recording. Native IRIS operations in the shown workflow are reads; demonstration workflow records were saved in a separate temporary gateway store. Screens contain bundled instance data, not a production customer's records.
+This is an edited sequence of actual application screens, not a continuous screen recording. Screens were captured from the running application after the scrollbar appearance update. The native IRIS operations shown are reads. Workflow records use an isolated presentation store; no production customer data is shown.
 
 ## Suggested YouTube title
 
-Harbor for InterSystems IRIS | Guided product walkthrough
+Harbor for InterSystems IRIS | An operations review, from question to evidence
 
 ## Suggested description
 
-Inspect a scheduled task, preserve its evidence in an investigation, and record an operations-review note in Harbor for InterSystems IRIS.
+An operations review, from question to evidence.
 
-This is an edited, narrated walkthrough of actual application screens. It uses synthesized English narration and English subtitles. The demonstrated workflow reads a running IRIS Community instance; it does not perform native administrative changes.
+An edited walkthrough of actual Harbor screens, with English on-screen captions and instrumental music. The demonstrated workflow reads an IRIS Community instance. No native administrative changes are performed.
 
 Source and installation: https://github.com/YOUR_GITHUB_ACCOUNT/harbor
 
@@ -22,39 +22,43 @@ Companion article: add the published Developer Community URL.
 
 Open Exchange: add the published application URL.
 
+Music: Synthwave 15k by The Cynic Project — CC0 1.0 — https://opengameart.org/content/calm-ambient-2-synthwave-15k
+
+Music may be trimmed or looped, with loudness adjustment and fades. Source details and hashes are retained in [MUSIC_LICENSES.md](MUSIC_LICENSES.md).
+
 ## Before upload
 
-1. Watch the complete MP4 and review the English subtitles. Replace the repository owner and add the real article/application links in the description.
-2. Upload the individual video, or use the relevant chapter of the combined video. Review YouTube's requested publication settings yourself. Do not assume multiple uploads multiply the contest bonus.
-3. Add the SRT as English captions if desired; readable captions are already burned into the prepared picture. Check for duplicate displayed captions when previewing.
-4. Publish the chosen video, verify that viewers can open it, and add its actual URL to the Open Exchange YouTube field and this repository's README. A local MP4 alone is not a published contest video.
+1. Watch and listen to the complete MP4. Replace the repository owner and add the real article/application links to the description.
+2. Upload the individual video, or use its chapter in the combined film. Review the publication settings yourself. Multiple uploads do not necessarily multiply the contest bonus.
+3. An English SRT is supplied. The brief captions are already part of the picture, so check for duplicate captions when enabling the optional subtitle track.
+4. Publish the chosen video, verify access without signing in, and add its actual URL to the Open Exchange YouTube field and repository README.
 
-## Scene transcript
+## On-screen captions
 
-### 1. Start with the evidence
+### 1. Start with what is known
 
-Harbor is an administration workspace for InterSystems IRIS. This guided walkthrough uses actual application screens from a running IRIS Community instance. The overview keeps missing monitor data visible. Here the system monitor is not configured, so Harbor does not present its counters as current measurements.
+Missing monitor data stays visible. Review the available evidence before changing a setting.
 
-### 2. Inspect the task before acting
+### 2. Inspect the task
 
-Open Task center and select Security Scan. The detail view separates scheduling state, task configuration, and source availability. It also highlights settings worth reviewing. Inspecting this task does not run it, suspend it, or change its schedule.
+Check its schedule and configuration. Opening the detail view does not execute the task.
 
-### 3. Read a bounded history
+### 3. Look at the returned history
 
-Execution history shows one returned successful execution in this sample. Filters, duration statistics, and exports apply to the returned records. An empty or bounded history does not prove that other executions never happened. The next step is to retain the evidence behind a review.
+Execution records add context. A bounded history is not a complete account of every run.
 
-### 4. Give the investigation a concrete question
+### 4. Frame the review question
 
-Create an investigation with a title, a question, severity, and tags. In this example, the goal is to retain task evidence before an operations review. This saves a Harbor workflow record in a separate demonstration workspace. It does not change native IRIS configuration.
+An investigation starts with a specific question. The following screens show a saved review and its evidence.
 
-### 5. Choose the sources to capture
+### 5. Choose the evidence
 
-In Captures, name the observation and select the relevant sources. Here the selection includes instance identity, system health, host capacity, recent messages, task definitions, and task history. Capture selected sources reads these inputs and preserves their individual outcomes.
+Select the relevant sources and label the observation so another reviewer can find it later.
 
-### 6. Keep source outcomes with the capture
+### 6. Keep the capture and its gaps
 
-The saved capture records when it was collected and which sources were available. Future observations can be compared with this evidence. Missing sources must remain gaps in the review, rather than becoming reassuring empty values. The original operational data is retained with the investigation.
+Saved source outcomes preserve what was available at the time of the review.
 
-### 7. Record the conclusion and next action
+### 7. Leave a useful conclusion
 
-Finally, add a note explaining what was checked. The timeline keeps that reasoning next to the capture, and the investigation can be exported as a report. No native settings were changed in this walkthrough. The repository README covers Docker installation, and the companion article explains the investigation workflow.
+Record the reasoning beside the evidence. This walkthrough made no native configuration changes.

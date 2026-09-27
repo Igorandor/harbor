@@ -45,4 +45,4 @@ The [original project idea](../IDEA.md) and the additional product-specific walk
 
 ## Video and online-demo preparation
 
-A narrated walkthrough, subtitles and upload text are prepared; see [VIDEO.md](VIDEO.md). They have not been published. The owner chose to skip cloud hosting; see [ONLINE_DEMO.md](ONLINE_DEMO.md). Do not count a local video file or local server as an awarded bonus.
+A music-only walkthrough, English captions and upload text are prepared; see [VIDEO.md](VIDEO.md). They have not been published. The owner chose to skip cloud hosting; see [ONLINE_DEMO.md](ONLINE_DEMO.md). Do not count a local video file or local server as an awarded bonus.
