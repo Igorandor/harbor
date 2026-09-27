@@ -1,5 +1,10 @@
 import { z } from 'zod';
 import { diagnosticSources } from './diagnostics.js';
+// At most 46,320 definition UTF-16 units, each requiring at most six JSON bytes,
+// plus the bounded source names, envelope and pretty-print structure (<22 KB).
+export const profileFileByteLimit = 300_000;
+// Matches the gateway's 256 KiB JSON limit; imports create a bare definition.
+export const profileCreateByteLimit = 256 * 1024;
 export const profileStepSchema = z
   .object({
     title: z.string().trim().min(3).max(160),
@@ -79,7 +84,7 @@ export function profileExport(profile: ProfileDefinition) {
   };
 }
 export function importProfile(value: unknown): ProfileDefinition {
-  return z
+  const definition = z
     .object({
       format: z.literal('harbor-investigation-profile'),
       version: z.literal(1),
@@ -87,6 +92,11 @@ export function importProfile(value: unknown): ProfileDefinition {
     })
     .strict()
     .parse(value).definition;
+  if (new TextEncoder().encode(JSON.stringify(definition)).byteLength > profileCreateByteLimit)
+    throw new Error(
+      'This profile exceeds the 256 KiB request limit after JSON encoding. Shorten its text before importing.',
+    );
+  return definition;
 }
 export const starterProfiles: ProfileDefinition[] = [
   {

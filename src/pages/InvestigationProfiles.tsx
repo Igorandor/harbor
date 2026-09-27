@@ -18,6 +18,7 @@ import {
   importProfile,
   profileExport,
   profileInputSchema,
+  profileFileByteLimit,
   sourceTitle,
   starterProfiles,
   type InvestigationProfile,
@@ -38,6 +39,19 @@ export function InvestigationProfiles({ onStarted }: { onStarted: () => void }) 
     [includeArchived, setIncludeArchived] = useState(false);
   const importInput = useRef<HTMLInputElement>(null);
   const selectionRequest = useRef(0);
+  const importRequest = useRef(0);
+  function openEditor(
+    definition: ProfileDefinition,
+    target?: Pick<InvestigationProfile, 'id' | 'revision'>,
+  ) {
+    importRequest.current++;
+    setEditing(definition);
+    setEditTarget(target);
+  }
+  function closeEditor() {
+    importRequest.current++;
+    setEditing(undefined);
+  }
   async function load() {
     setError('');
     try {
@@ -50,6 +64,7 @@ export function InvestigationProfiles({ onStarted }: { onStarted: () => void }) 
     void load();
     return () => {
       selectionRequest.current++;
+      importRequest.current++;
     };
   }, []);
   async function inspect(id: string) {
@@ -76,7 +91,7 @@ export function InvestigationProfiles({ onStarted }: { onStarted: () => void }) 
           )
         : await request<InvestigationProfile>('investigation-profiles', definition);
       if (generation === selectionRequest.current) setSelected(profile);
-      setEditing(undefined);
+      closeEditor();
       void load();
     } finally {
       if (generation === selectionRequest.current) setBusy(false);
@@ -101,15 +116,18 @@ export function InvestigationProfiles({ onStarted }: { onStarted: () => void }) 
     }
   }
   async function importFile(file: File | undefined) {
+    const generation = ++importRequest.current;
     if (!file) return;
     try {
-      if (file.size > 64000) throw new Error('Profile files are limited to 64 KB.');
+      if (file.size > profileFileByteLimit) throw new Error('Profile files are limited to 300 KB.');
       const definition = importProfile(JSON.parse(await file.text()));
+      if (generation !== importRequest.current) return;
       setEditing(definition);
       setEditTarget(undefined);
       setError('');
     } catch (error) {
-      setError('Could not import the profile: ' + (error as Error).message);
+      if (generation === importRequest.current)
+        setError('Could not import the profile: ' + (error as Error).message);
     }
   }
   const definition = (profile: InvestigationProfile): ProfileDefinition => ({
@@ -133,13 +151,12 @@ export function InvestigationProfiles({ onStarted }: { onStarted: () => void }) 
         <button
           className="primary"
           onClick={() => {
-            setEditing({
+            openEditor({
               title: '',
               description: '',
               sources: ['identity', 'health', 'messages'],
               steps: [{ title: '', instruction: '', required: true }],
             });
-            setEditTarget(undefined);
           }}
         >
           <Plus size={16} /> New profile
@@ -197,8 +214,7 @@ export function InvestigationProfiles({ onStarted }: { onStarted: () => void }) 
               className="record-choice"
               key={index}
               onClick={() => {
-                setEditing(structuredClone(profile));
-                setEditTarget(undefined);
+                openEditor(structuredClone(profile));
               }}
             >
               <strong>{profile.title}</strong>
@@ -225,23 +241,27 @@ export function InvestigationProfiles({ onStarted }: { onStarted: () => void }) 
                 <button
                   className="primary"
                   disabled={busy || selected.status !== 'active'}
-                  onClick={() => setStarting(true)}
+                  onClick={() => {
+                    importRequest.current++;
+                    setStarting(true);
+                  }}
                 >
                   <Play size={16} /> Start investigation
                 </button>
                 <button
                   disabled={busy || selected.status !== 'active'}
                   onClick={() => {
-                    setEditing(definition(selected));
-                    setEditTarget({ id: selected.id, revision: selected.revision });
+                    openEditor(definition(selected), {
+                      id: selected.id,
+                      revision: selected.revision,
+                    });
                   }}
                 >
                   Edit profile
                 </button>
                 <button
                   onClick={() => {
-                    setEditing({ ...definition(selected), title: selected.title + ' copy' });
-                    setEditTarget(undefined);
+                    openEditor({ ...definition(selected), title: selected.title + ' copy' });
                   }}
                 >
                   <Copy size={16} /> Duplicate
@@ -316,7 +336,7 @@ export function InvestigationProfiles({ onStarted }: { onStarted: () => void }) 
         <ProfileEditor
           initial={editing}
           existing={Boolean(editTarget)}
-          onClose={() => setEditing(undefined)}
+          onClose={closeEditor}
           onSave={save}
         />
       ) : null}

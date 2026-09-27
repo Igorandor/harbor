@@ -34,6 +34,8 @@ Exports include a complete bounded case JSON, a printable case report, and per-c
 
 **Investigation profiles** stores a title, description, fixed source selection and checklist. Start from a built-in definition or write your own. Import accepts only the documented profile data; no commands, file paths or arbitrary endpoints are executed.
 
+Profile files are limited to 300,000 bytes before reading. This bound includes the largest supported text fields after UTF-8 encoding, JSON escaping and export formatting. The imported definition must also fit the gateway's unchanged 256 KiB JSON request limit when compactly encoded for creation; an unsendable definition is rejected with a request-size explanation. Imports do not save automatically. Beginning another editor workflow or closing its dialog discards an older pending file result, including its errors, so it cannot change the newer draft or its revision target.
+
 Each edit creates a new profile revision with a reason. Starting an investigation copies the chosen revision and gives its checklist independent item identities. Updating or archiving the profile cannot rewrite an existing case. Checklist decisions require a note and retain the deciding account and timestamp.
 
 ## Verify administrative changes

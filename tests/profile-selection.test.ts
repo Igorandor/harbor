@@ -243,3 +243,210 @@ test('late status and save responses cannot replace a newer selection or clear i
     assert.equal(ui.calls.filter((value) => value.body !== undefined).length, 1);
   }
 });
+
+function importFile(
+  ui: Awaited<ReturnType<typeof harness>>,
+  file: { size: number; text: () => Promise<string> },
+) {
+  ui.page()
+    .find((node) => node.type === 'input' && node.props.type === 'file')
+    .props.onChange({ target: { files: [file], value: 'chosen.json' } });
+}
+function editorTitle(ui: Awaited<ReturnType<typeof harness>>) {
+  return ui.edit().find((node) => node.type === 'input' && node.props.maxLength === 120);
+}
+function profileFile(definition: profileModel.ProfileDefinition) {
+  const text = JSON.stringify(profileModel.profileExport(definition), null, 2);
+  return { size: Buffer.byteLength(text), text: async () => text };
+}
+
+test('an older file import cannot turn a subsequently opened edit into creation', async () => {
+  const read = deferred<string>();
+  const ui = await harness(async (_path, body) =>
+    body ? { ...bravo, ...body.definition, revision: 8 } : bravo,
+  );
+  ui.select(bravo.title);
+  await tick();
+  importFile(ui, { size: 200, text: () => read.promise });
+  assert.equal(ui.button('Edit profile').props.disabled, false);
+  ui.button('Edit profile').props.onClick();
+  editorTitle(ui).props.onChange({ target: { value: 'Retained operator draft' } });
+  read.resolve(JSON.stringify(profileModel.profileExport(profileModel.starterProfiles[0])));
+  await tick();
+  assert.equal(ui.edit()[0].props.title, 'Edit investigation profile');
+  assert.equal(editorTitle(ui).props.value, 'Retained operator draft');
+  await ui.save();
+  const writes = ui.calls.filter((call) => call.body !== undefined);
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].path, route(bravo.id) + '/revise');
+  assert.equal(writes[0].body.revision, bravo.revision);
+  assert.equal(writes[0].body.definition.title, 'Retained operator draft');
+});
+
+test('new, duplicate and template workflows discard obsolete file failures and completion after close', async () => {
+  for (const action of ['New profile', 'Duplicate', profileModel.starterProfiles[0].title]) {
+    for (const failure of [false, true]) {
+      const read = deferred<string>(),
+        ui = await harness(async () => bravo);
+      ui.select(bravo.title);
+      await tick();
+      importFile(ui, { size: 200, text: () => read.promise });
+      ui.button(action, action !== profileModel.starterProfiles[0].title).props.onClick();
+      editorTitle(ui).props.onChange({ target: { value: 'Newer draft' } });
+      const editor = ui.edit();
+      // Closing this real modal is available before a save starts.
+      editor[0].props.onClose();
+      if (failure) read.reject(new Error('Obsolete file failure'));
+      else
+        read.resolve(JSON.stringify(profileModel.profileExport(profileModel.starterProfiles[1])));
+      await tick();
+      assert.ok(!ui.page().some((node) => node.type?.name === 'ProfileEditor'));
+      assert.equal(ui.error(), undefined);
+      assert.equal(ui.calls.filter((call) => call.body !== undefined).length, 0);
+    }
+  }
+});
+
+test('the latest chosen import owns the definition and an older file cannot replace it', async () => {
+  const earlier = deferred<string>(),
+    ui = await harness(async () => bravo);
+  importFile(ui, { size: 200, text: () => earlier.promise });
+  const newer = { ...profileModel.starterProfiles[1], title: 'Latest chosen file' };
+  importFile(ui, profileFile(newer));
+  await tick();
+  assert.equal(editorTitle(ui).props.value, newer.title);
+  earlier.resolve(JSON.stringify(profileModel.profileExport(profileModel.starterProfiles[0])));
+  await tick();
+  const editor = ui.page().find((node) => node.type?.name === 'ProfileEditor');
+  assert.equal(editor.props.initial.title, newer.title);
+  assert.equal(editorTitle(ui).props.value, newer.title);
+});
+
+test('a valid Unicode export larger than the old file cap imports and submits the same definition', async () => {
+  const definition: profileModel.ProfileDefinition = {
+    title: 'Unicode checklist',
+    description: 'Internationalized instructions',
+    sources: ['identity'],
+    steps: Array.from({ length: 20 }, (_, i) => ({
+      title: 'Check ' + (i + 1),
+      instruction: 'ż'.repeat(2000),
+      required: true,
+    })),
+  };
+  const ui = await harness(async (_path, body) => ({ ...bravo, ...body })),
+    file = profileFile(definition);
+  assert.ok(file.size > 64000 && file.size < profileModel.profileFileByteLimit);
+  importFile(ui, file);
+  await tick();
+  assert.equal(editorTitle(ui).props.value, definition.title);
+  ui.edit()
+    .find((node) => node.type === 'form')
+    .props.onSubmit({ preventDefault() {} });
+  await tick();
+  const writes = ui.calls.filter((call) => call.body !== undefined);
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].path, 'investigation-profiles');
+  assert.deepEqual(writes[0].body, definition);
+  assert.ok(
+    Buffer.byteLength(JSON.stringify(writes[0].body)) <= profileModel.profileCreateByteLimit,
+  );
+});
+
+function escapedDefinition(): profileModel.ProfileDefinition {
+  return {
+    title: '\u0001'.repeat(120),
+    description: '\u0001'.repeat(3000),
+    sources: [
+      'identity',
+      'health',
+      'capacity',
+      'processes',
+      'tasks',
+      'history',
+      'journals',
+      'messages',
+    ],
+    steps: Array.from({ length: 20 }, () => ({
+      title: '\u0001'.repeat(160),
+      instruction: '\u0001'.repeat(2000),
+      required: false,
+    })),
+  };
+}
+function atWireSize(target: number) {
+  const definition = escapedDefinition();
+  let reduce = Buffer.byteLength(JSON.stringify(definition)) - target;
+  // Replacing an escaped control unit (6 bytes) with A/é/中 removes 5/4/3 bytes.
+  const reductions: string[] = [];
+  while (reduce > 7) {
+    reductions.push('A');
+    reduce -= 5;
+  }
+  const final: Record<number, string> = { 0: '', 3: '中', 4: 'é', 5: 'A', 6: '中中', 7: '中é' };
+  assert.ok(Object.hasOwn(final, reduce));
+  reductions.push(final[reduce]);
+  let replacements = reductions.join('');
+  for (const step of definition.steps) {
+    const prefix = replacements.slice(0, step.instruction.length);
+    step.instruction = prefix + step.instruction.slice(prefix.length);
+    replacements = replacements.slice(prefix.length);
+  }
+  assert.equal(replacements, '');
+  assert.equal(Buffer.byteLength(JSON.stringify(definition)), target);
+  return definition;
+}
+
+test('escaped exports fit the derived file bound and exact compact create boundary is enforced', async () => {
+  const maximum = escapedDefinition(),
+    worstFile = profileFile(maximum);
+  assert.ok(
+    worstFile.size <= profileModel.profileFileByteLimit,
+    'Maximum schema strings plus JSON escaping and indentation must fit',
+  );
+  assert.ok(Buffer.byteLength(JSON.stringify(maximum)) > profileModel.profileCreateByteLimit);
+  for (const excess of [0, 1]) {
+    const definition = atWireSize(profileModel.profileCreateByteLimit + excess);
+    const ui = await harness(async () => bravo);
+    importFile(ui, profileFile(definition));
+    await tick();
+    if (excess) {
+      assert.match(ui.error()!, /256 KiB request limit after JSON encoding/);
+      assert.ok(!ui.page().some((node) => node.type?.name === 'ProfileEditor'));
+    } else {
+      assert.equal(ui.error(), undefined);
+      assert.deepEqual(
+        ui.page().find((node) => node.type?.name === 'ProfileEditor').props.initial,
+        definition,
+      );
+    }
+    assert.equal(
+      ui.calls.filter((call) => call.body !== undefined).length,
+      0,
+      'Import never saves automatically',
+    );
+  }
+});
+
+test('oversized files are rejected before reading and malformed import envelopes cannot open an editor', async () => {
+  const ui = await harness(async () => bravo);
+  let reads = 0;
+  importFile(ui, {
+    size: profileModel.profileFileByteLimit + 1,
+    text: async () => {
+      reads++;
+      return '{}';
+    },
+  });
+  await tick();
+  assert.equal(reads, 0);
+  assert.match(ui.error()!, /limited to 300 KB/);
+  for (const contents of [
+    '{',
+    JSON.stringify({ ...profileModel.profileExport(profileModel.starterProfiles[0]), version: 2 }),
+  ]) {
+    importFile(ui, { size: Buffer.byteLength(contents), text: async () => contents });
+    await tick();
+    assert.match(ui.error()!, /Could not import/);
+    assert.ok(!ui.page().some((node) => node.type?.name === 'ProfileEditor'));
+  }
+});
