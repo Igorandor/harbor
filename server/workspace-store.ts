@@ -3,6 +3,9 @@ import { mkdir, open, readdir, rename, unlink, lstat } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { ApiError } from './upstream.js';
+import { z } from 'zod';
+
+const storedTimestamp = z.iso.datetime();
 
 export type WorkspaceIdentity = { owner: string; instance: string };
 export type StoredDocument = WorkspaceIdentity & {
@@ -63,8 +66,11 @@ export class WorkspaceStore {
       let data: Buffer;
       try {
         const opened = await handle.stat();
-        if (!opened.isFile() || opened.ino !== initial.ino ||
-          (process.platform !== 'win32' && opened.dev !== initial.dev))
+        if (
+          !opened.isFile() ||
+          opened.ino !== initial.ino ||
+          (process.platform !== 'win32' && opened.dev !== initial.dev)
+        )
           throw new Error('Record file was replaced');
         // Windows lstat reports dev=0 while fstat reports the volume; recheck the
         // directory entry because that platform has no O_NOFOLLOW constant.
@@ -90,6 +96,8 @@ export class WorkspaceStore {
         value.id !== id ||
         value.owner !== actor.owner ||
         value.instance !== actor.instance ||
+        !storedTimestamp.safeParse(value.createdAt).success ||
+        !storedTimestamp.safeParse(value.updatedAt).success ||
         !Number.isSafeInteger(value.revision) ||
         value.revision < 1
       )

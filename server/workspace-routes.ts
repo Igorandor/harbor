@@ -163,8 +163,9 @@ export function workspaceRoutes(
       'investigations',
       async (record: Investigation) => {
         try {
+          const summary = summarizeCase(record);
           await caseAccess(res, record);
-          return summarizeCase(record);
+          return summary;
         } catch (error) {
           if (!(error instanceof ApiError && [401, 403].includes(error.status))) throw error;
         }

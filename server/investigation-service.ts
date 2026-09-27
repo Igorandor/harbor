@@ -6,6 +6,7 @@ import {
   type Investigation,
   type CaseCapture,
   summarizeCase,
+  validStoredCase,
 } from '../shared/investigation.js';
 import type { DiagnosticId } from '../shared/diagnostics.js';
 import { captureDiagnostics } from './diagnostics.js';
@@ -59,11 +60,7 @@ export class InvestigationService {
   }
   async get(actor: Actor, id: string) {
     const record = await this.store.read<Investigation>(actor, 'investigations', id);
-    if (
-      !Array.isArray(record.notes) ||
-      !Array.isArray(record.captures) ||
-      !Array.isArray(record.linkedChanges)
-    )
+    if (!validStoredCase(record))
       throw new ApiError(500, 'The investigation record is invalid. Preserve it for inspection.');
     return record;
   }

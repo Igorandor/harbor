@@ -11,6 +11,22 @@ export const caseInput = z
     tags: z.array(z.string().trim().min(1).max(40)).max(12).default([]),
   })
   .strict();
+const storedCaseFields = caseInput
+  .extend({
+    tags: caseInput.shape.tags.removeDefault(),
+    status: z.enum(caseStatus),
+  })
+  .passthrough();
+
+/** Validate stored basics without applying input defaults or rewriting evidence. */
+export function validStoredCase(value: Investigation): boolean {
+  return (
+    storedCaseFields.safeParse(value).success &&
+    Array.isArray(value.notes) &&
+    Array.isArray(value.captures) &&
+    Array.isArray(value.linkedChanges)
+  );
+}
 export type CaseNote = {
   id: string;
   at: string;
@@ -64,6 +80,7 @@ export type CaseSummary = Omit<
   reviewCount: number;
 };
 export function summarizeCase(value: Investigation): CaseSummary {
+  if (!validStoredCase(value)) throw new Error('Invalid stored investigation fields.');
   const { captures, notes, checklist, evidenceReviews, ...rest } = value;
   return {
     ...rest,
