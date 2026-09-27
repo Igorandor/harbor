@@ -750,6 +750,9 @@ td .text-link {
   font-weight: 550;
   text-align: left;
 }
+td .row-name {
+  min-width: 14ch;
+}
 td .icon-button {
   min-height: 24px;
   min-width: 24px;

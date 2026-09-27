@@ -51,7 +51,8 @@ export function Collection({
   const rows = Array.isArray(resource.data) ? resource.data : [],
     filtered = rows.filter((row) =>
       JSON.stringify(row).toLowerCase().includes(search.toLowerCase()),
-    );
+    ),
+    current = Math.min(page, Math.max(0, Math.ceil(filtered.length / 20) - 1));
   useEffect(
     () => setPage((p) => Math.min(p, Math.max(0, Math.ceil(filtered.length / 20) - 1))),
     [filtered.length],
@@ -112,7 +113,7 @@ export function Collection({
           <Loading />
         ) : filtered.length ? (
           <Table
-            rows={filtered.slice(page * 20, (page + 1) * 20)}
+            rows={filtered.slice(current * 20, (current + 1) * 20)}
             columns={entity.columns}
             keyField={entity.key}
             onSelect={setSelected}
@@ -134,20 +135,20 @@ export function Collection({
 
         <div className="table-footer">
           <span>
-            Showing {Math.min(page * 20 + 1, filtered.length)}–
-            {Math.min((page + 1) * 20, filtered.length)} of {filtered.length}
+            Showing {Math.min(current * 20 + 1, filtered.length)}–
+            {Math.min((current + 1) * 20, filtered.length)} of {filtered.length}
             {rows.length >= 250
               ? ' · First 250 returned. Use REST explorer for a server filter.'
               : ''}
           </span>
           <div>
-            <button className="small" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+            <button className="small" disabled={current === 0} onClick={() => setPage(current - 1)}>
               Previous
             </button>
             <button
               className="small"
-              disabled={(page + 1) * 20 >= filtered.length}
-              onClick={() => setPage((p) => p + 1)}
+              disabled={(current + 1) * 20 >= filtered.length}
+              onClick={() => setPage(current + 1)}
             >
               Next
             </button>
