@@ -1,5 +1,13 @@
 # Verification record
 
+## Unconfirmed note and capture saves — September 28, 2026
+
+Release 1.0.10 explains how to check a note or capture after an unavailable or unreadable response. The draft remains; Refresh reads the current investigation without repeating the append. Existing revision checks reject stale repeats before appending or collecting diagnostics. The original error remains available, and a known save followed by a list failure is still reported as saved.
+
+Production build and 330 Node tests passed. Twenty-eight actual-component browser checks use the real InvestigationService with an in-memory store: post-commit 503, unreadable 200, stale revision refusal, explicit read recovery, known-save/list-failure handling, one-shot error focus, repeated identical errors and uninterrupted draft typing. No native calls or durable writes occurred. Run `node --import tsx scripts/test-investigation-append-browser.mjs` and open the printed URL.
+
+Manual desktop and 390px checks verified visible focused guidance, retained drafts and saved entries after an explicit read. The mobile document now measures 390px client/scroll width, down from 544px scroll width. The independent tab strip remains keyboard-scrollable through Related changes. These are browser viewport checks, not physical-device certification.
+
 ## Identifiable, readable handover exports — September 28, 2026
 
 Release 1.0.9 adds the saved case ID, owner, instance, revision and creation/update times to investigation HTML. A retained closure reason is labelled Previous resolution when the case is active again. Each capture identifies its ID and collector; comparison HTML identifies the selected captures and optional saved review. Existing timeline, checklist, decisions and payload sections are preserved. Long text wraps in both documents, and the investigation document now declares a mobile viewport.

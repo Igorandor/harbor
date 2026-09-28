@@ -31,6 +31,13 @@ export function Investigations({
   const [query, setQuery] = useState(''),
     [status, setStatus] = useState('active');
   const [accessCheckId, setAccessCheckId] = useState<string>();
+  const [appendErrorAttempt, setAppendErrorAttempt] = useState(0);
+  const appendErrorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!appendErrorAttempt) return;
+    appendErrorRef.current?.focus({ preventScroll: true });
+    appendErrorRef.current?.scrollIntoView({ block: 'center' });
+  }, [appendErrorAttempt]);
   const pending = useRef(false),
     generation = useRef(0);
   function begin() {
@@ -121,6 +128,7 @@ export function Investigations({
     if (!selected) return false;
     const requestGeneration = begin();
     if (requestGeneration === undefined) return false;
+    let appendFailed = false;
     try {
       const value = await request<Investigation>('investigations/' + selected.id + '/' + action, {
         ...input,
@@ -140,7 +148,18 @@ export function Investigations({
       return true;
     } catch (error) {
       if (requestGeneration !== generation.current) return false;
-      setError((error as Error).message);
+      appendFailed = action === 'notes' || action === 'captures';
+      const unknownSave =
+        error instanceof TypeError ||
+        (error instanceof RequestError &&
+          (error.status >= 500 || (error.status >= 200 && error.status < 300)));
+      setError(
+        unknownSave && (action === 'notes' || action === 'captures')
+          ? action === 'notes'
+            ? `Could not confirm whether the note was saved. Refresh this investigation and check Timeline before saving again. Your draft is kept. ${(error as Error).message}`
+            : `Could not confirm whether the capture was saved. Refresh this investigation and check Captures before collecting again. Your draft is kept. ${(error as Error).message}`
+          : (error as Error).message,
+      );
       if (error instanceof RequestError && error.status === 403) {
         // The refusal may concern a new linked change rather than this case.
         // Revalidate the case itself before retaining its evidence and exports.
@@ -167,6 +186,8 @@ export function Investigations({
       return false;
     } finally {
       finish(requestGeneration);
+      if (appendFailed && requestGeneration === generation.current)
+        setAppendErrorAttempt((attempt) => attempt + 1);
     }
   }
   const records = (listing?.records ?? []).filter(
@@ -198,14 +219,18 @@ export function Investigations({
           <FilePlus2 size={16} /> New investigation
         </button>
       </PageHeader>
-      {error && <ErrorBox error={error} />}
+      {error && (
+        <div ref={appendErrorRef} tabIndex={-1}>
+          <ErrorBox error={error} />
+        </div>
+      )}
       {listing?.unreadable.length ? (
         <div className="notice warning">
           {listing.unreadable.length} stored investigations could not be read. Preserve the data
           directory before recovery.
         </div>
       ) : null}
-      <div className="operations-split">
+      <div className="operations-split investigation-workspace">
         <section className="panel record-index" aria-label="Investigations">
           <label className="search-field">
             <Search size={16} />

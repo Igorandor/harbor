@@ -32,6 +32,8 @@ In **Timeline → Add a note**, separate the observation from the conclusion. Fo
 
 Select **Save note**. If the question remains open, use **Status → New status → investigating**, give the reason, and **Save status**. If the available evidence answers the question, choose **resolved** and record why. Resolving a case records your assessment; it does not certify the task's business result.
 
+If the response to **Save note** or **Capture selected sources** is lost or unreadable, the save may already have succeeded. Use **Refresh** inside the investigation, then inspect **Timeline** or the saved **Captures** before submitting again. Your entered text stays available, so clear it if the intended entry is already present. Refreshing reads the saved case; it does not repeat the append or collect another capture. A stale revision is refused by the server, but submitting again after a refresh deliberately creates a new entry.
+
 For a later check, capture the same sources again while the case is open and use **Compare captures**. Check the **Earlier capture** and **Later capture** selections: numeric differences subtract the earlier selection from the later selection. Harbor warns beside the selectors if their finish times are reversed or equal; it does not swap the captures. Disappearing entries in bounded history or log windows do not establish deletion. The [operational guide](OPERATIONS.md#investigate-a-change) explains saved difference reviews and their limits.
 
 ## 4. Hand over the evidence

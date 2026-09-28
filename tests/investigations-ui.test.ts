@@ -145,6 +145,7 @@ async function harness(
     module,
     exports: module.exports,
     fixture,
+    TypeError,
     console,
   });
   function expand(tree: any, path: string): any {
@@ -601,4 +602,56 @@ test('a quarantined case does not hide a different independently authorized inve
   assert.ok(visibleExport(f.render()));
   visibleExport(f.render())!.props.onClick();
   assert.equal((f.downloads.at(-1)!.value as Investigation).id, 'B');
+});
+
+for (const failure of [
+  new TypeError('Connection lost'),
+  new RequestError('Service unavailable', 503),
+  new RequestError('Unreadable response', 200),
+]) {
+  test(`an ambiguous note response preserves draft and explains read-before-repeat (${failure.message})`, async () => {
+    const f = await harness();
+    await f.openA();
+    const { result } = await f.submit('Check this saved note');
+    f.calls.at(-1)!.reject(failure);
+    await result;
+    assert.equal(note(f.render()).props.value, 'Check this saved note');
+    const message = nodes(f.render()).find((n) => n.type === 'ErrorBox')!.props.error;
+    assert.match(message, /Could not confirm whether the note was saved/);
+    assert.match(message, /Refresh this investigation and check Timeline before saving again/);
+    assert.ok(message.endsWith(failure.message), 'The original diagnostic remains available');
+    assert.equal(f.calls.length, 3, 'No automatic read or mutation replay');
+  });
+}
+test('a rejected note keeps its specific revision-conflict explanation', async () => {
+  const f = await harness();
+  await f.openA();
+  const { result } = await f.submit('Check revision');
+  f.calls
+    .at(-1)!
+    .reject(new RequestError('The investigation changed. Refresh before saving.', 409));
+  await result;
+  assert.equal(
+    nodes(f.render()).find((n) => n.type === 'ErrorBox')!.props.error,
+    'The investigation changed. Refresh before saving.',
+  );
+  assert.equal(note(f.render()).props.value, 'Check revision');
+});
+
+test('each failed append focuses and scrolls its error once; typing does not repeat focus', async () => {
+  const f = await harness();
+  await f.openA();
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { result } = await f.submit('Keep this note');
+    f.calls.at(-1)!.reject(new RequestError('Service unavailable', 503));
+    await result;
+    f.render();
+    assert.deepEqual(
+      f.focusCalls.slice(attempt * 2).map((call) => call.method),
+      ['focus', 'scroll'],
+    );
+    note(f.render()).props.onChange({ target: { value: 'Keep this note edited' } });
+    f.render();
+    assert.equal(f.focusCalls.length, (attempt + 1) * 2);
+  }
 });

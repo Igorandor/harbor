@@ -4,6 +4,9 @@
   gap: 20px;
   align-items: start;
 }
+.investigation-workspace > * {
+  min-width: 0;
+}
 .record-index {
   padding: 16px;
   display: flex;
@@ -563,6 +566,9 @@
 @media (max-width: 900px) {
   .operations-split {
     grid-template-columns: 1fr;
+  }
+  .investigation-workspace {
+    grid-template-columns: minmax(0, 1fr);
   }
   .record-index {
     max-height: 360px;
