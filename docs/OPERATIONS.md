@@ -20,6 +20,8 @@ An ordinary native GET sent through `/api/iris` cancels its HTTP transport if th
 
 Creating an investigation or profile does not automatically retry after a lost or unreadable response. If creation cannot be confirmed, the form keeps its draft and asks you to check the saved list before creating again: the first request may already have succeeded. Known validation or permission errors retain their specific explanation. A newly failed submission focuses and reveals its error inside the form; editing the retained draft does not move focus again. You can deliberately create another record, but a second submission is a new creation, not a recovery of the first request.
 
+While creating an investigation, its title, scope, severity and tags are unavailable for editing until the request settles. This also applies when starting from a profile. A failed request restores editing with the submitted values retained.
+
 Starting an investigation from a profile opens the returned investigation directly. A transient failure to refresh the list does not discard its known ID or detail. The handoff is consumed once and belongs to the current sign-in; navigating back or signing in again cannot restore it. A subsequent access denial still clears the protected detail.
 
 1. Open **Investigations → New investigation**. Give the case a concrete question, severity and optional tags.

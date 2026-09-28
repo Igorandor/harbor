@@ -1,5 +1,13 @@
 # Verification record
 
+## Investigation creation fields — September 29, 2026
+
+The ordinary and saved-profile creation forms disable their seven editable fields while saving. Synchronous request and dismissal guards retain the submitted draft. Failed requests restore editing with the same values; existing warnings for unconfirmed creation and profile access checks are unchanged.
+
+Production build and 341 tests pass. Twelve actual-component browser checks cover pending fields, request guards, dismissal, refusal, successful retry and the existing uncertainty warning. Run `node scripts/test-investigation-creation-browser.mjs` and open its printed URL. Responses are synthetic; no native calls or durable writes occurred.
+
+Manual desktop and 390px checks confirm retained drafts after refusal and successful creation using those values. Document client/scroll widths match at 1280px and 390px. These are responsive browser checks, not physical-device tests.
+
 ## Evidence review fields during saving — September 28, 2026
 
 Review title, decision, reasoning, conclusion, acknowledgement and reopening reason are disabled during the existing pending-save state. Previously, a later edit could disappear when the saved record returned and the form reset. Failed saves retain the submitted values and restore editing. Capture-pair binding, difference identities and backend behavior are unchanged.

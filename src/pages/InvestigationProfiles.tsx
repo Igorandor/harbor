@@ -814,6 +814,7 @@ function StartProfile({
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const errorRef = useRef<HTMLDivElement>(null);
+  const pending = useRef(false);
   const [failure, setFailure] = useState(0);
   useEffect(() => {
     if (!failure) return;
@@ -822,7 +823,8 @@ function StartProfile({
   }, [failure]);
   async function start(event: React.FormEvent) {
     event.preventDefault();
-    if (accessPending || busy) return;
+    if (accessPending || pending.current) return;
+    pending.current = true;
     setBusy(true);
     setError('');
     try {
@@ -839,6 +841,7 @@ function StartProfile({
       setError(creationFailure(error, 'investigations'));
       setFailure((value) => value + 1);
     } finally {
+      pending.current = false;
       setBusy(false);
     }
   }
@@ -847,7 +850,7 @@ function StartProfile({
       title="Start investigation"
       subtitle={accessPending ? undefined : profile.title + ' · revision ' + profile.revision}
       onClose={() => {
-        if (!busy) onClose();
+        if (!pending.current) onClose();
       }}
     >
       {accessPending ? (
@@ -873,6 +876,7 @@ function StartProfile({
           <label className="field">
             Investigation title
             <input
+              disabled={busy}
               required
               minLength={3}
               maxLength={160}
@@ -883,6 +887,7 @@ function StartProfile({
           <label className="field">
             Current problem
             <textarea
+              disabled={busy}
               required
               rows={4}
               maxLength={4000}
@@ -892,7 +897,11 @@ function StartProfile({
           </label>
           <label className="field">
             Severity
-            <select value={severity} onChange={(event) => setSeverity(event.target.value)}>
+            <select
+              disabled={busy}
+              value={severity}
+              onChange={(event) => setSeverity(event.target.value)}
+            >
               {caseSeverity.map((value) => (
                 <option key={value}>{value}</option>
               ))}
@@ -904,7 +913,13 @@ function StartProfile({
           </p>
         </div>
         <footer>
-          <button type="button" disabled={busy} onClick={onClose}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              if (!pending.current) onClose();
+            }}
+          >
             Cancel
           </button>
           <button className="primary" disabled={busy}>

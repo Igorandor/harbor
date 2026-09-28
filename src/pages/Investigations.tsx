@@ -340,6 +340,7 @@ function NewCase({
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const errorRef = useRef<HTMLDivElement>(null);
+  const pending = useRef(false);
   const [failure, setFailure] = useState(0);
   useEffect(() => {
     if (!failure) return;
@@ -348,6 +349,8 @@ function NewCase({
   }, [failure]);
   async function create(event: React.FormEvent) {
     event.preventDefault();
+    if (pending.current) return;
+    pending.current = true;
     setBusy(true);
     setError('');
     try {
@@ -366,6 +369,7 @@ function NewCase({
       setError(creationFailure(error, 'investigations'));
       setFailure((value) => value + 1);
     } finally {
+      pending.current = false;
       setBusy(false);
     }
   }
@@ -373,7 +377,7 @@ function NewCase({
     <Modal
       title="New investigation"
       onClose={() => {
-        if (!busy) onClose();
+        if (!pending.current) onClose();
       }}
     >
       <form onSubmit={(event) => void create(event)}>
@@ -386,6 +390,7 @@ function NewCase({
           <label className="field">
             Title
             <input
+              disabled={busy}
               required
               minLength={3}
               maxLength={160}
@@ -396,6 +401,7 @@ function NewCase({
           <label className="field">
             What needs investigation?
             <textarea
+              disabled={busy}
               required
               rows={5}
               maxLength={4000}
@@ -406,6 +412,7 @@ function NewCase({
           <label className="field">
             Severity
             <select
+              disabled={busy}
               value={severity}
               onChange={(event) => setSeverity(event.target.value as Investigation['severity'])}
             >
@@ -417,6 +424,7 @@ function NewCase({
           <label className="field">
             Tags
             <input
+              disabled={busy}
               value={tags}
               maxLength={480}
               onChange={(event) => setTags(event.target.value)}
@@ -425,7 +433,13 @@ function NewCase({
           </label>
         </div>
         <footer>
-          <button type="button" disabled={busy} onClick={onClose}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              if (!pending.current) onClose();
+            }}
+          >
             Cancel
           </button>
           <button className="primary" disabled={busy} type="submit">
