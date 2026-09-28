@@ -6,6 +6,8 @@ Built for the [InterSystems Programming Contest: Build Your Own Management Porta
 
 ![Harbor investigation with saved task evidence and review notes](docs/images/overview.png)
 
+For a first run, follow [Investigate a task that appears to have missed a run](docs/FIRST_INVESTIGATION.md): inspect an existing task, save observations and export a handover report without changing IRIS configuration.
+
 ## What you can do
 
 | Workspace              | Capabilities                                                                                                                                                   |
