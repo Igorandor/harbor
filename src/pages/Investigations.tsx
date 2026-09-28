@@ -31,13 +31,13 @@ export function Investigations({
   const [query, setQuery] = useState(''),
     [status, setStatus] = useState('active');
   const [accessCheckId, setAccessCheckId] = useState<string>();
-  const [appendErrorAttempt, setAppendErrorAttempt] = useState(0);
-  const appendErrorRef = useRef<HTMLDivElement>(null);
+  const [mutationErrorAttempt, setMutationErrorAttempt] = useState(0);
+  const mutationErrorRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!appendErrorAttempt) return;
-    appendErrorRef.current?.focus({ preventScroll: true });
-    appendErrorRef.current?.scrollIntoView({ block: 'center' });
-  }, [appendErrorAttempt]);
+    if (!mutationErrorAttempt) return;
+    mutationErrorRef.current?.focus({ preventScroll: true });
+    mutationErrorRef.current?.scrollIntoView({ block: 'center' });
+  }, [mutationErrorAttempt]);
   const pending = useRef(false),
     generation = useRef(0);
   function begin() {
@@ -128,7 +128,7 @@ export function Investigations({
     if (!selected) return false;
     const requestGeneration = begin();
     if (requestGeneration === undefined) return false;
-    let appendFailed = false;
+    let mutationFailed = false;
     try {
       const value = await request<Investigation>('investigations/' + selected.id + '/' + action, {
         ...input,
@@ -148,7 +148,7 @@ export function Investigations({
       return true;
     } catch (error) {
       if (requestGeneration !== generation.current) return false;
-      appendFailed = action === 'notes' || action === 'captures';
+      mutationFailed = true;
       const unknownSave =
         error instanceof TypeError ||
         (error instanceof RequestError &&
@@ -186,8 +186,8 @@ export function Investigations({
       return false;
     } finally {
       finish(requestGeneration);
-      if (appendFailed && requestGeneration === generation.current)
-        setAppendErrorAttempt((attempt) => attempt + 1);
+      if (mutationFailed && requestGeneration === generation.current)
+        setMutationErrorAttempt((attempt) => attempt + 1);
     }
   }
   const records = (listing?.records ?? []).filter(
@@ -220,7 +220,7 @@ export function Investigations({
         </button>
       </PageHeader>
       {error && (
-        <div ref={appendErrorRef} tabIndex={-1}>
+        <div ref={mutationErrorRef} tabIndex={-1}>
           <ErrorBox error={error} />
         </div>
       )}
@@ -451,6 +451,8 @@ function CaseDetail({
 }) {
   const [view, setView] = useState('timeline'),
     [note, setNote] = useState(''),
+    [statusReason, setStatusReason] = useState(''),
+    [changeContext, setChangeContext] = useState(''),
     [nextStatus, setNextStatus] = useState<Investigation['status']>('investigating');
   const [captureTitle, setCaptureTitle] = useState(''),
     [sources, setSources] = useState<DiagnosticId[]>(
@@ -658,8 +660,8 @@ function CaseDetail({
           className="record-actions"
           onSubmit={async (event) => {
             event.preventDefault();
-            if (await onChange('status', { status: nextStatus, reason: note }))
-              setNote((current) => (current === note ? '' : current));
+            if (await onChange('status', { status: nextStatus, reason: statusReason }))
+              setStatusReason((current) => (current === statusReason ? '' : current));
           }}
         >
           <h3>Change investigation status</h3>
@@ -688,11 +690,11 @@ function CaseDetail({
               disabled={busy}
               rows={4}
               maxLength={4000}
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
+              value={statusReason}
+              onChange={(event) => setStatusReason(event.target.value)}
             />
           </label>
-          <button className="primary" disabled={busy || !note.trim()}>
+          <button className="primary" disabled={busy || !statusReason.trim()}>
             Save status
           </button>
           <p className="scope-note">
@@ -717,9 +719,9 @@ function CaseDetail({
             <form
               onSubmit={async (event) => {
                 event.preventDefault();
-                if (await onChange('changes', { changeId, note })) {
+                if (await onChange('changes', { changeId, note: changeContext })) {
                   setChangeId((current) => (current === changeId ? '' : current));
-                  setNote((current) => (current === note ? '' : current));
+                  setChangeContext((current) => (current === changeContext ? '' : current));
                 }
               }}
             >
@@ -737,8 +739,8 @@ function CaseDetail({
                 Context
                 <textarea
                   disabled={busy}
-                  value={note}
-                  onChange={(event) => setNote(event.target.value)}
+                  value={changeContext}
+                  onChange={(event) => setChangeContext(event.target.value)}
                   maxLength={4000}
                   rows={3}
                 />

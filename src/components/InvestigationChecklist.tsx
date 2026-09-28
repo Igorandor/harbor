@@ -94,6 +94,7 @@ function ChecklistRow({
               Outcome
               <select
                 value={state}
+                disabled={busy}
                 onChange={(event) => setState(event.target.value as ChecklistItem['state'])}
               >
                 <option value="open">Open</option>
@@ -105,6 +106,7 @@ function ChecklistRow({
               Result or reason
               <textarea
                 required
+                disabled={busy}
                 rows={3}
                 maxLength={2000}
                 value={note}

@@ -1,5 +1,15 @@
 # Verification record
 
+## Separate investigation form drafts — September 28, 2026
+
+Timeline notes, status reasons and related-change context previously shared one value. Editing another form replaced the Timeline draft, and saving that form cleared it. Each now has its own state and payload. Confirmed saves clear only the submitted form; failures preserve drafts. Current-access denial still removes the protected workbench. Checklist outcome/reason controls are disabled while saving, preventing an intervening edit from being lost when the saved row returns.
+
+Failed investigation mutations also focus and scroll their error once per attempt, including repeated identical refusals. Editing a draft does not refocus the message.
+
+Production build and 338 Node tests passed. Twenty-seven actual-component browser checks cover all three forms with successful and failed saves, denied-case eviction, and checklist pending/success/failure behavior. Transport is synthetic; no native calls or durable writes occurred. Run `node scripts/test-investigation-drafts-browser.mjs` and open its printed URL.
+
+Manual desktop and 390px checks confirmed a retained Timeline draft after saving status or linking a change. Checklist fields were disabled during a held response and restored with their values after rejection. The checklist error, previously above the viewport, is now visible and focused; desktop status errors also receive focus. Document widths remain 390/390 and 1280/1280.
+
 ## Unconfirmed note and capture saves — September 28, 2026
 
 Release 1.0.10 explains how to check a note or capture after an unavailable or unreadable response. The draft remains; Refresh reads the current investigation without repeating the append. Existing revision checks reject stale repeats before appending or collecting diagnostics. The original error remains available, and a known save followed by a list failure is still reported as saved.

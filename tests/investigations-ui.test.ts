@@ -638,20 +638,67 @@ test('a rejected note keeps its specific revision-conflict explanation', async (
   assert.equal(note(f.render()).props.value, 'Check revision');
 });
 
-test('each failed append focuses and scrolls its error once; typing does not repeat focus', async () => {
-  const f = await harness();
-  await f.openA();
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const { result } = await f.submit('Keep this note');
-    f.calls.at(-1)!.reject(new RequestError('Service unavailable', 503));
-    await result;
-    f.render();
-    assert.deepEqual(
-      f.focusCalls.slice(attempt * 2).map((call) => call.method),
-      ['focus', 'scroll'],
-    );
-    note(f.render()).props.onChange({ target: { value: 'Keep this note edited' } });
-    f.render();
-    assert.equal(f.focusCalls.length, (attempt + 1) * 2);
+for (const tab of ['Timeline', 'Status', 'Related changes'])
+  test(`${tab}: each failed mutation focuses once; typing does not repeat focus`, async () => {
+    const f = await harness();
+    await f.openA();
+    button(f.render(), tab).props.onClick();
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const { result } = await f.submit('Keep this note');
+      f.calls.at(-1)!.reject(new RequestError('Service unavailable', 503));
+      await result;
+      f.render();
+      assert.deepEqual(
+        f.focusCalls.slice(attempt * 2).map((call) => call.method),
+        ['focus', 'scroll'],
+      );
+      note(f.render()).props.onChange({ target: { value: 'Keep this note edited' } });
+      f.render();
+      assert.equal(f.focusCalls.length, (attempt + 1) * 2);
+    }
+  });
+
+for (const operation of ['Timeline', 'Status', 'Related changes']) {
+  for (const success of [true, false]) {
+    test(`${operation} draft is independent and only its confirmed save clears it (${success})`, async () => {
+      const f = await harness();
+      await f.openA();
+      const drafts = {
+        Timeline: 'Timeline analysis',
+        Status: 'Status rationale',
+        'Related changes': 'Link context',
+      };
+      for (const [tab, value] of Object.entries(drafts)) {
+        button(f.render(), tab).props.onClick();
+        assert.equal(note(f.render()).props.value, '');
+        note(f.render()).props.onChange({ target: { value } });
+      }
+      button(f.render(), 'Related changes').props.onClick();
+      nodes(f.render())
+        .find((n) => n.type === 'input' && n.props.maxLength === 36)!
+        .props.onChange({ target: { value: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } });
+      button(f.render(), operation).props.onClick();
+      const saving = nodes(f.render())
+        .find((n) => n.type === 'form')!
+        .props.onSubmit({ preventDefault() {} });
+      const call = f.calls.at(-1)!;
+      const action =
+        operation === 'Timeline' ? 'notes' : operation === 'Status' ? 'status' : 'changes';
+      assert.equal(call.path, 'investigations/A/' + action);
+      assert.equal(
+        call.body[action === 'notes' ? 'text' : action === 'status' ? 'reason' : 'note'],
+        drafts[operation as keyof typeof drafts],
+      );
+      if (success) {
+        call.resolve({ ...f.a, revision: 2 });
+        await settle();
+        f.calls.at(-1)!.resolve({ records: [summarizeCase(f.a)], unreadable: [], total: 1 });
+      } else call.reject(new RequestError('Revision conflict', 409));
+      await saving;
+      for (const [tab, value] of Object.entries(drafts)) {
+        button(f.render(), tab).props.onClick();
+        assert.equal(note(f.render()).props.value, success && tab === operation ? '' : value);
+      }
+    });
   }
-});
+}
