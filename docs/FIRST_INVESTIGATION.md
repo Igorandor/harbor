@@ -40,6 +40,8 @@ Choose **Download report** for an HTML report or **Export investigation** for th
 
 Saved cases belong to the signed-in IRIS account and instance. Another account cannot open your case as a shared ticket; use the exported report for handover. Returning with the same account lets you reopen the retained investigation, subject to its current source permissions. If a resolved case disappears from the default list, change **Status** from **Active investigations** to **All investigations**.
 
+If a change is refused, Harbor checks whether the case can still be read. When that check is temporarily unavailable, evidence and exports stay hidden; use **Check access again** to retry. A successful check restores the view and unsaved note. If access is denied or the case is gone, Harbor removes its cached view.
+
 You should finish with a concrete question, timestamped evidence, the limits of what was checked, and one next action or a justified resolution.
 
 For collection bounds and recovery, see [Operational workflows](OPERATIONS.md). The UI and source definitions are in [TaskCenter.tsx](../src/features/tasks/TaskCenter.tsx), [Investigations.tsx](../src/pages/Investigations.tsx) and [diagnostics.ts](../shared/diagnostics.ts).

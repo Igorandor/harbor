@@ -29,6 +29,7 @@ export function Investigations({
     [error, setError] = useState('');
   const [query, setQuery] = useState(''),
     [status, setStatus] = useState('active');
+  const [accessCheckId, setAccessCheckId] = useState<string>();
   const pending = useRef(false),
     generation = useRef(0);
   function begin() {
@@ -46,6 +47,7 @@ export function Investigations({
   }
   function acceptListing(value: Listing) {
     setListing(value);
+    setAccessCheckId((id) => (value.records.some((record) => record.id === id) ? undefined : id));
     setSelected((current) =>
       current &&
       (value.records.some((record) => record.id === current.id) ||
@@ -83,24 +85,31 @@ export function Investigations({
       pending.current = false;
     };
   }, []);
+  function removeDeniedCase(id: string) {
+    setSelected((current) => (current?.id === id ? undefined : current));
+    setAccessCheckId((current) => (current === id ? undefined : current));
+    setListing(
+      (current) =>
+        current && {
+          ...current,
+          records: current.records.filter((record) => record.id !== id),
+          unreadable: current.unreadable.filter((recordId) => recordId !== id),
+        },
+    );
+  }
   async function inspect(id: string) {
     const requestGeneration = begin();
     if (requestGeneration === undefined) return;
     try {
       const value = await request<Investigation>('investigations/' + id);
-      if (requestGeneration === generation.current) setSelected(value);
+      if (requestGeneration === generation.current) {
+        setSelected(value);
+        setAccessCheckId((current) => (current === id ? undefined : current));
+      }
     } catch (error) {
       if (requestGeneration === generation.current) {
-        if (error instanceof RequestError && error.status === 403) {
-          setSelected((current) => (current?.id === id ? undefined : current));
-          setListing(
-            (current) =>
-              current && {
-                ...current,
-                records: current.records.filter((record) => record.id !== id),
-              },
-          );
-        }
+        if (error instanceof RequestError && [403, 404].includes(error.status))
+          removeDeniedCase(id);
         setError((error as Error).message);
       }
     } finally {
@@ -129,7 +138,31 @@ export function Investigations({
       }
       return true;
     } catch (error) {
-      if (requestGeneration === generation.current) setError((error as Error).message);
+      if (requestGeneration !== generation.current) return false;
+      setError((error as Error).message);
+      if (error instanceof RequestError && error.status === 403) {
+        // The refusal may concern a new linked change rather than this case.
+        // Revalidate the case itself before retaining its evidence and exports.
+        const id = selected.id;
+        setAccessCheckId(id);
+        try {
+          const value = await request<Investigation>('investigations/' + id);
+          if (requestGeneration !== generation.current) return false;
+          setSelected((current) => (current?.id === id ? value : current));
+          setAccessCheckId((current) => (current === id ? undefined : current));
+        } catch (readError) {
+          if (requestGeneration !== generation.current) return false;
+          if (readError instanceof RequestError && [403, 404].includes(readError.status)) {
+            removeDeniedCase(id);
+            setError((readError as Error).message);
+          } else {
+            setError(
+              'The change was refused. Could not confirm current access to this investigation: ' +
+                (readError as Error).message,
+            );
+          }
+        }
+      }
       return false;
     } finally {
       finish(requestGeneration);
@@ -215,16 +248,32 @@ export function Investigations({
           ) : null}
         </section>
         {selected ? (
-          <CaseDetail
-            key={selected.id}
-            record={selected}
-            busy={busy}
-            onChange={change}
-            onRefresh={() => void inspect(selected.id)}
-            onClose={() => {
-              if (!pending.current) setSelected(undefined);
-            }}
-          />
+          <div>
+            {accessCheckId === selected.id && (
+              <section className="panel padded" role="status">
+                <h2>Checking investigation access</h2>
+                <p>
+                  The last change was refused. Saved evidence and exports are hidden until this
+                  investigation can be read again. Your draft is kept in this session.
+                </p>
+                <button disabled={busy} onClick={() => void inspect(selected.id)}>
+                  Check access again
+                </button>
+              </section>
+            )}
+            <div hidden={accessCheckId === selected.id}>
+              <CaseDetail
+                key={selected.id}
+                record={selected}
+                busy={busy}
+                onChange={change}
+                onRefresh={() => void inspect(selected.id)}
+                onClose={() => {
+                  if (!pending.current) setSelected(undefined);
+                }}
+              />
+            </div>
+          </div>
         ) : (
           <section className="panel record-workbench">
             <div className="atlas-empty">

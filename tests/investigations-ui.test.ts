@@ -494,3 +494,111 @@ test('new-case errors receive focus and scroll once per failed submission, inclu
     assert.equal(f.focusCalls.length, attempt * 2, 'Typing and rerender must not steal focus');
   }
 });
+function visibleNodes(tree: any): Element[] {
+  if (Array.isArray(tree)) return tree.flatMap(visibleNodes);
+  if (!tree || typeof tree !== 'object' || tree.props?.hidden) return [];
+  return [tree, ...visibleNodes(tree.props?.children)];
+}
+function visibleExport(tree: Element) {
+  return visibleNodes(tree).find(
+    (node) => node.type === 'button' && text(node).trim() === 'Export investigation',
+  );
+}
+
+for (const status of [403, 404]) {
+  test(`a refused mutation revalidates the same case, then removes evidence and exports on GET ${status}`, async () => {
+    const f = await harness();
+    await f.openA();
+    const staleChoice = f.choice(f.render(), 'B');
+    const { result } = await f.submit('Note before refusal');
+    f.calls.at(-1)!.reject(new RequestError('Write refused', 403));
+    await settle();
+    assert.equal(f.calls.at(-1)!.path, 'investigations/A');
+    assert.equal(f.calls.at(-1)!.body, undefined, 'The recheck must be a read');
+    assert.equal(
+      visibleExport(f.render()),
+      undefined,
+      'Exports must be hidden during revalidation',
+    );
+    assert.equal(f.choice(f.render(), 'B').props.disabled, true);
+    staleChoice.props.onClick();
+    assert.equal(f.calls.length, 4, 'Pending revalidation must exclude queued selection');
+    f.calls.at(-1)!.reject(new RequestError('Investigation no longer readable', status));
+    await result;
+    assert.equal(visibleExport(f.render()), undefined);
+    assert.ok(!nodes(f.render()).some((node) => node.type === 'h2' && text(node) === 'Case A'));
+    assert.equal(f.choice(f.render(), 'A'), undefined);
+    assert.ok(f.choice(f.render(), 'B'), 'Unrelated cases remain available');
+  });
+}
+
+test('a denied linked change can retain an authorized case and draft after its own GET succeeds', async () => {
+  const f = await harness();
+  await f.openA();
+  button(f.render(), 'Related changes').props.onClick();
+  const view = f.render();
+  nodes(view)
+    .find((node) => node.type === 'input' && node.props.maxLength === 36)!
+    .props.onChange({ target: { value: '00000000-0000-4000-8000-000000000001' } });
+  note(f.render()).props.onChange({ target: { value: 'Link context' } });
+  const result = nodes(f.render())
+    .find((node) => node.type === 'form')!
+    .props.onSubmit({ preventDefault() {} });
+  assert.equal(f.calls.at(-1)!.path, 'investigations/A/changes');
+  f.calls.at(-1)!.reject(new RequestError('New linked change is forbidden', 403));
+  await settle();
+  assert.equal(f.calls.at(-1)!.path, 'investigations/A');
+  f.calls.at(-1)!.resolve({ ...f.a, revision: 7 });
+  await result;
+  assert.equal(note(f.render()).props.value, 'Link context');
+  assert.ok(visibleExport(f.render()));
+  assert.ok(
+    nodes(f.render()).some(
+      (node) => node.type === 'ErrorBox' && node.props.error === 'New linked change is forbidden',
+    ),
+  );
+  button(f.render(), 'Timeline').props.onClick();
+  const pending = await f.submit('New note uses refreshed revision');
+  assert.equal(f.calls.at(-1)!.body.revision, 7);
+  f.calls.at(-1)!.reject(new RequestError('Fixture stopped', 409));
+  await pending.result;
+});
+
+test('transient revalidation failure keeps the draft hidden until a successful case read', async () => {
+  const f = await harness();
+  await f.openA();
+  const { result } = await f.submit('Preserved during read outage');
+  f.calls.at(-1)!.reject(new RequestError('Mutation refused', 403));
+  await settle();
+  f.calls.at(-1)!.reject(new RequestError('Temporary read failure', 500));
+  await result;
+  assert.equal(visibleExport(f.render()), undefined);
+  assert.equal(
+    note(f.render()).props.value,
+    'Preserved during read outage',
+    'The hidden editor retains its draft',
+  );
+  assert.ok(visibleNodes(f.render()).some((node) => node.props?.role === 'status'));
+  button(f.render(), 'Check access again').props.onClick();
+  assert.equal(f.calls.at(-1)!.path, 'investigations/A');
+  f.calls.at(-1)!.resolve(f.a);
+  await settle();
+  assert.ok(visibleExport(f.render()));
+  assert.equal(note(f.render()).props.value, 'Preserved during read outage');
+});
+
+test('a quarantined case does not hide a different independently authorized investigation', async () => {
+  const f = await harness();
+  await f.openA();
+  const { result } = await f.submit('A note');
+  f.calls.at(-1)!.reject(new RequestError('Mutation refused', 403));
+  await settle();
+  f.calls.at(-1)!.reject(new RequestError('Read unavailable', 500));
+  await result;
+  f.choice(f.render(), 'B').props.onClick();
+  f.calls.at(-1)!.resolve(f.b);
+  await settle();
+  assert.ok(visibleExport(f.render()));
+  visibleExport(f.render())!.props.onClick();
+  assert.equal((f.downloads.at(-1)!.value as Investigation).id, 'B');
+});

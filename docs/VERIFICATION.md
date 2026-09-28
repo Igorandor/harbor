@@ -1,5 +1,11 @@
 # Verification record
 
+## Investigation access after a refused write — September 28, 2026
+
+Reproduced a mutation returning 403 while previously loaded case evidence remained exportable. Harbor now revalidates that investigation after the refusal. A successful read preserves the draft and updates the record; denied or missing records are removed from the selected view and list. This distinguishes loss of case access from a refusal concerning a newly linked change. A temporary recheck failure hides evidence, exports and controls while keeping the mounted draft for an explicit retry. Existing server source checks and session isolation remain unchanged.
+
+Build and 319 tests pass, including five UI regressions covering denied/missing rechecks, still-authorized drafts, temporary failure/recovery and unrelated case selection. Real-component browser checks passed on desktop and at 390px with synthetic transport: denied A disappeared while B remained, allowed recheck retained the exact note, temporary failure hid exports, retry restored the note, and missing-record recheck removed A. The phone document stayed 390px wide. No existing case, credentials, native data or IRIS permissions were modified.
+
 ## Native message-log rotations — September 28, 2026
 
 The catalog and gateway rejected the documented IRIS archive family `messages.old_Date`, even though the log browser already supported numeric `.log` rotations. The catalog, native window reader and gateway now accept that message-log family with the existing bounded numeric suffix syntax. Alerts and unrelated files do not gain an `.old_` exception. Manager-directory confinement, symlink refusal, read/line/catalog caps, identity checks, snapshot boundaries and signed account-scoped cursors are unchanged. The README records the supported families and directory limits.
