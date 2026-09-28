@@ -4,7 +4,7 @@ Harbor is an administration portal for InterSystems IRIS. Inspect tasks, logs an
 
 Built for the [InterSystems Programming Contest: Build Your Own Management Portal](https://community.intersystems.com/post/intersystems-programming-contest-build-your-own-management-portal).
 
-![Harbor connected to a real IRIS Community instance](docs/images/overview.png)
+![Harbor investigation with saved task evidence and review notes](docs/images/overview.png)
 
 ## What you can do
 
