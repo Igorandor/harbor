@@ -11,7 +11,7 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react';
-import { download, request, creationFailure } from '../api';
+import { download, request, creationFailure, RequestError } from '../api';
 import { ErrorBox, Modal, PageHeader } from '../components/ui';
 import { diagnosticSources } from '../../shared/diagnostics';
 import {
@@ -37,31 +37,98 @@ export function InvestigationProfiles({
     [selected, setSelected] = useState<InvestigationProfile>();
   const [editing, setEditing] = useState<ProfileDefinition>(),
     [editTarget, setEditTarget] = useState<Pick<InvestigationProfile, 'id' | 'revision'>>(),
-    [starting, setStarting] = useState(false);
+    [starting, setStarting] = useState<InvestigationProfile>();
   const [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [includeArchived, setIncludeArchived] = useState(false);
   const importInput = useRef<HTMLInputElement>(null);
   const selectionRequest = useRef(0);
   const importRequest = useRef(0);
+  const listingRequest = useRef(0);
+  const writePending = useRef(false);
+  const editorSource = useRef<string | undefined>(undefined);
+  const startingSource = useRef<string | undefined>(undefined);
+  const selectedId = useRef<string | undefined>(undefined);
+  selectedId.current = selected?.id;
+  const [unverified, setUnverified] = useState<Set<string>>(() => new Set());
+  const [listingUnverified, setListingUnverified] = useState(false);
+  const selectedUnverified = !!selected && (listingUnverified || unverified.has(selected.id));
+  const editorUnverified =
+    !!editorSource.current && (listingUnverified || unverified.has(editorSource.current));
+  const startingUnverified = !!starting && (listingUnverified || unverified.has(starting.id));
   function openEditor(
     definition: ProfileDefinition,
     target?: Pick<InvestigationProfile, 'id' | 'revision'>,
+    sourceId = target?.id,
   ) {
     importRequest.current++;
+    editorSource.current = sourceId;
     setEditing(definition);
     setEditTarget(target);
   }
   function closeEditor() {
     importRequest.current++;
+    editorSource.current = undefined;
     setEditing(undefined);
+    setEditTarget(undefined);
   }
-  async function load() {
+  function removeProtected(id?: string) {
+    // An older list response must not put a newly denied record back in the index.
+    ++listingRequest.current;
+    setSelected((current) => (!id || current?.id === id ? undefined : current));
+    if (!id) setListing(undefined);
+    else
+      setListing(
+        (current) =>
+          current && {
+            ...current,
+            records: current.records.filter((record) => record.id !== id),
+            unreadable: current.unreadable.filter((recordId) => recordId !== id),
+          },
+      );
+    if (editorSource.current && (!id || editorSource.current === id)) closeEditor();
+    if (startingSource.current && (!id || startingSource.current === id)) {
+      startingSource.current = undefined;
+      setStarting(undefined);
+    }
+    setUnverified((current) =>
+      id ? new Set([...current].filter((value) => value !== id)) : new Set(),
+    );
+  }
+  function verified(id: string) {
+    setUnverified((current) => new Set([...current].filter((value) => value !== id)));
+  }
+  async function load(savedMessage = '') {
+    const generation = ++listingRequest.current;
+    setListingUnverified(true);
     setError('');
     try {
-      setListing(await request<ProfileListing>('investigation-profiles'));
+      const listing = await request<ProfileListing>('investigation-profiles');
+      if (generation !== listingRequest.current) return;
+      setListing(listing);
+      setListingUnverified(false);
+      // A fresh list can restore summaries, but does not revalidate retained detail drafts.
+      setUnverified(
+        (current) =>
+          new Set(
+            [...current].filter(
+              (id) =>
+                id === selectedId.current ||
+                id === editorSource.current ||
+                id === startingSource.current,
+            ),
+          ),
+      );
+      return true;
     } catch (error) {
-      setError((error as Error).message);
+      if (generation !== listingRequest.current) return;
+      if (error instanceof RequestError && error.status === 403) {
+        ++selectionRequest.current;
+        removeProtected();
+        setBusy(false);
+      }
+      setError(savedMessage + (error as Error).message);
+      return false;
     }
   }
   useEffect(() => {
@@ -69,23 +136,63 @@ export function InvestigationProfiles({
     return () => {
       selectionRequest.current++;
       importRequest.current++;
+      listingRequest.current++;
     };
   }, []);
   async function inspect(id: string) {
     const generation = ++selectionRequest.current;
     setBusy(true);
     setError('');
+    setUnverified((current) => new Set(current).add(id));
     try {
       const profile = await request<InvestigationProfile>('investigation-profiles/' + id);
-      if (generation === selectionRequest.current) setSelected(profile);
+      if (generation === selectionRequest.current) {
+        setSelected(profile);
+        verified(id);
+      }
     } catch (error) {
-      if (generation === selectionRequest.current) setError((error as Error).message);
+      if (generation === selectionRequest.current) {
+        if (error instanceof RequestError && [403, 404].includes(error.status)) removeProtected(id);
+        setError((error as Error).message);
+      }
     } finally {
       if (generation === selectionRequest.current) setBusy(false);
     }
   }
-  async function save(definition: ProfileDefinition, reason: string) {
+  async function checkAccess(id: string, generation: number) {
+    if (generation !== selectionRequest.current) return;
+    setUnverified((current) => new Set(current).add(id));
+    try {
+      const profile = await request<InvestigationProfile>('investigation-profiles/' + id);
+      if (generation !== selectionRequest.current) return;
+      setSelected((current) => (current?.id === id ? profile : current));
+      verified(id);
+    } catch (error) {
+      if (generation !== selectionRequest.current) return;
+      if (error instanceof RequestError && [403, 404].includes(error.status)) removeProtected(id);
+      setError('Could not confirm profile access: ' + (error as Error).message);
+    }
+  }
+  async function retryAccess(id: string) {
     const generation = ++selectionRequest.current;
+    setBusy(true);
+    setError('');
+    try {
+      await checkAccess(id, generation);
+    } finally {
+      if (generation === selectionRequest.current) setBusy(false);
+    }
+  }
+  async function retryProtected(id: string) {
+    if (listingUnverified && !(await load())) return;
+    await retryAccess(id);
+  }
+  async function save(definition: ProfileDefinition, reason: string) {
+    if (editorUnverified) throw new Error('Confirm profile access before saving.');
+    if (writePending.current) throw new Error('A profile change is already pending.');
+    writePending.current = true;
+    const generation = ++selectionRequest.current;
+    const sourceId = editorSource.current;
     setBusy(true);
     try {
       const profile = editTarget
@@ -96,13 +203,19 @@ export function InvestigationProfiles({
         : await request<InvestigationProfile>('investigation-profiles', definition);
       if (generation === selectionRequest.current) setSelected(profile);
       closeEditor();
-      void load();
+      void load('Profile saved. Could not refresh the list: ');
+    } catch (error) {
+      if (sourceId && error instanceof RequestError && error.status === 403)
+        await checkAccess(sourceId, generation);
+      throw error;
     } finally {
+      writePending.current = false;
       if (generation === selectionRequest.current) setBusy(false);
     }
   }
   async function status() {
-    if (!selected) return;
+    if (!selected || selectedUnverified || writePending.current) return;
+    writePending.current = true;
     const generation = ++selectionRequest.current;
     setBusy(true);
     setError('');
@@ -112,10 +225,13 @@ export function InvestigationProfiles({
         { revision: selected.revision, archived: selected.status === 'active' },
       );
       if (generation === selectionRequest.current) setSelected(profile);
-      void load();
+      void load('Profile saved. Could not refresh the list: ');
     } catch (error) {
       if (generation === selectionRequest.current) setError((error as Error).message);
+      if (error instanceof RequestError && error.status === 403)
+        await checkAccess(selected.id, generation);
     } finally {
+      writePending.current = false;
       if (generation === selectionRequest.current) setBusy(false);
     }
   }
@@ -126,6 +242,7 @@ export function InvestigationProfiles({
       if (file.size > profileFileByteLimit) throw new Error('Profile files are limited to 300 KB.');
       const definition = importProfile(JSON.parse(await file.text()));
       if (generation !== importRequest.current) return;
+      editorSource.current = undefined;
       setEditing(definition);
       setEditTarget(undefined);
       setError('');
@@ -177,7 +294,25 @@ export function InvestigationProfiles({
         }}
       />
       {error ? <ErrorBox error={error} /> : null}
-      {listing?.unreadable.length ? (
+      {listingUnverified && !listing && !error ? (
+        <p role="status">Reading saved profiles…</p>
+      ) : listingUnverified ? (
+        <p className="notice warning" role="status">
+          Saved profiles are hidden until access is confirmed.
+          <button disabled={busy} onClick={() => void load()}>
+            Check access again
+          </button>
+        </p>
+      ) : null}
+      {selectedUnverified && !listingUnverified ? (
+        <p className="notice warning" role="status">
+          Profile details and exports are hidden until access is confirmed.
+          <button disabled={busy} onClick={() => void retryAccess(selected!.id)}>
+            Read profile again
+          </button>
+        </p>
+      ) : null}
+      {!listingUnverified && listing?.unreadable.length ? (
         <p className="notice warning">
           {listing.unreadable.length} profiles could not be read. Preserve the files for inspection.
         </p>
@@ -192,24 +327,26 @@ export function InvestigationProfiles({
             />{' '}
             Include archived profiles
           </label>
-          {listing?.records
-            .filter((profile) => includeArchived || profile.status === 'active')
-            .map((profile) => (
-              <button
-                className={'record-choice ' + (selected?.id === profile.id ? 'active' : '')}
-                key={profile.id}
-                onClick={() => void inspect(profile.id)}
-              >
-                <strong>{profile.title}</strong>
-                <span>
-                  {profile.stepCount} steps · {profile.requiredCount} required
-                </span>
-                <small>
-                  Revision {profile.revision} · {profile.status}
-                </small>
-              </button>
-            ))}
-          {!listing?.records.length ? (
+          {!listingUnverified &&
+            listing?.records
+              .filter((profile) => includeArchived || profile.status === 'active')
+              .filter((profile) => !unverified.has(profile.id))
+              .map((profile) => (
+                <button
+                  className={'record-choice ' + (selected?.id === profile.id ? 'active' : '')}
+                  key={profile.id}
+                  onClick={() => void inspect(profile.id)}
+                >
+                  <strong>{profile.title}</strong>
+                  <span>
+                    {profile.stepCount} steps · {profile.requiredCount} required
+                  </span>
+                  <small>
+                    Revision {profile.revision} · {profile.status}
+                  </small>
+                </button>
+              ))}
+          {!listingUnverified && !listing?.records.length ? (
             <p>No saved profiles yet. Start with a template below or create your own.</p>
           ) : null}
           <h3>Starting templates</h3>
@@ -226,7 +363,11 @@ export function InvestigationProfiles({
             </button>
           ))}
         </section>
-        <section className="panel record-workbench">
+        <section
+          className="panel record-workbench"
+          hidden={selectedUnverified}
+          style={selectedUnverified ? { display: 'none' } : undefined}
+        >
           {selected ? (
             <>
               <div className="section-heading">
@@ -247,7 +388,8 @@ export function InvestigationProfiles({
                   disabled={busy || selected.status !== 'active'}
                   onClick={() => {
                     importRequest.current++;
-                    setStarting(true);
+                    startingSource.current = selected.id;
+                    setStarting(selected);
                   }}
                 >
                   <Play size={16} /> Start investigation
@@ -265,7 +407,11 @@ export function InvestigationProfiles({
                 </button>
                 <button
                   onClick={() => {
-                    openEditor({ ...definition(selected), title: selected.title + ' copy' });
+                    openEditor(
+                      { ...definition(selected), title: selected.title + ' copy' },
+                      undefined,
+                      selected.id,
+                    );
                   }}
                 >
                   <Copy size={16} /> Duplicate
@@ -342,10 +488,27 @@ export function InvestigationProfiles({
           existing={Boolean(editTarget)}
           onClose={closeEditor}
           onSave={save}
+          accessPending={editorUnverified}
+          accessError={error}
+          checking={busy}
+          onRetry={() => void retryProtected(editorSource.current!)}
         />
       ) : null}
-      {starting && selected ? (
-        <StartProfile profile={selected} onClose={() => setStarting(false)} onStarted={onStarted} />
+      {starting ? (
+        <StartProfile
+          key={starting.id}
+          profile={starting}
+          onClose={() => {
+            startingSource.current = undefined;
+            setStarting(undefined);
+          }}
+          onStarted={onStarted}
+          accessPending={startingUnverified}
+          accessError={error}
+          checking={busy}
+          onRetry={() => void retryProtected(starting.id)}
+          onAccessDenied={() => retryAccess(starting.id)}
+        />
       ) : null}
     </>
   );
@@ -355,11 +518,19 @@ function ProfileEditor({
   existing,
   onClose,
   onSave,
+  accessPending = false,
+  accessError = '',
+  checking = false,
+  onRetry,
 }: {
   initial: ProfileDefinition;
   existing: boolean;
   onClose: () => void;
   onSave: (definition: ProfileDefinition, reason: string) => Promise<void>;
+  accessPending?: boolean;
+  accessError?: string;
+  checking?: boolean;
+  onRetry?: () => void;
 }) {
   const [draft, setDraft] = useState(() => structuredClone(initial)),
     [reason, setReason] = useState(''),
@@ -387,6 +558,7 @@ function ProfileEditor({
   }
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (accessPending || busy) return;
     setBusy(true);
     setError('');
     try {
@@ -407,7 +579,20 @@ function ProfileEditor({
         if (!busy) onClose();
       }}
     >
-      <form onSubmit={(event) => void submit(event)}>
+      {accessPending ? (
+        <div className="modal-body" role="status">
+          <p>The draft is hidden until profile access is confirmed.</p>
+          {accessError && <ErrorBox error={accessError} />}
+          <button disabled={checking || busy} onClick={onRetry}>
+            Read profile again
+          </button>
+        </div>
+      ) : null}
+      <form
+        hidden={accessPending}
+        style={accessPending ? { display: 'none' } : undefined}
+        onSubmit={(event) => void submit(event)}
+      >
         <div className="modal-body">
           {error ? (
             <div ref={errorRef} tabIndex={-1}>
@@ -563,10 +748,20 @@ function StartProfile({
   profile,
   onClose,
   onStarted,
+  accessPending = false,
+  accessError = '',
+  checking = false,
+  onRetry,
+  onAccessDenied,
 }: {
   profile: InvestigationProfile;
   onClose: () => void;
   onStarted: (record: Investigation) => void;
+  accessPending?: boolean;
+  accessError?: string;
+  checking?: boolean;
+  onRetry?: () => void;
+  onAccessDenied?: () => Promise<void>;
 }) {
   const [title, setTitle] = useState(profile.title),
     [description, setDescription] = useState(profile.description),
@@ -582,6 +777,7 @@ function StartProfile({
   }, [failure]);
   async function start(event: React.FormEvent) {
     event.preventDefault();
+    if (accessPending || busy) return;
     setBusy(true);
     setError('');
     try {
@@ -594,6 +790,7 @@ function StartProfile({
       );
       onStarted(created);
     } catch (error) {
+      if (error instanceof RequestError && error.status === 403) await onAccessDenied?.();
       setError(creationFailure(error, 'investigations'));
       setFailure((value) => value + 1);
     } finally {
@@ -603,12 +800,25 @@ function StartProfile({
   return (
     <Modal
       title="Start investigation"
-      subtitle={profile.title + ' · revision ' + profile.revision}
+      subtitle={accessPending ? undefined : profile.title + ' · revision ' + profile.revision}
       onClose={() => {
         if (!busy) onClose();
       }}
     >
-      <form onSubmit={(event) => void start(event)}>
+      {accessPending ? (
+        <div className="modal-body" role="status">
+          <p>The draft is hidden until profile access is confirmed.</p>
+          {accessError && <ErrorBox error={accessError} />}
+          <button disabled={checking || busy} onClick={onRetry}>
+            Read profile again
+          </button>
+        </div>
+      ) : null}
+      <form
+        hidden={accessPending}
+        style={accessPending ? { display: 'none' } : undefined}
+        onSubmit={(event) => void start(event)}
+      >
         <div className="modal-body">
           {error ? (
             <div ref={errorRef} tabIndex={-1}>

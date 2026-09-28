@@ -48,6 +48,8 @@ Profile files are limited to 300,000 bytes before reading. This bound includes t
 
 Each edit creates a new profile revision with a reason. Starting an investigation copies the chosen revision and gives its checklist independent item identities. Updating or archiving the profile cannot rewrite an existing case. Checklist decisions require a note and retain the deciding account and timestamp.
 
+Saved profiles require current operating access. If a read is refused or the profile is gone, its cached details, exports and related forms are cleared. A temporary failure hides them until **Read profile again** succeeds, preserving the unsaved draft and its original revision. These checks never repeat a write. See [profile access and recovery](PROFILE_SELECTION_RECOVERY.md#current-access-and-recovery).
+
 ## Verify administrative changes
 
 Harbor prepares changes before sending them. A durable record is saved before dispatch; duplicate dispatches are refused. The gateway serializes its own writes to the same canonical target. This is not a lock held inside IRIS, so another native administrator can still act between the read and write.

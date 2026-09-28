@@ -81,6 +81,7 @@ async function harness(
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'fragment' },
     '../api': {
       creationFailure,
+      RequestError,
       request: async (path: string, body?: unknown) => {
         calls.push({ path, body });
         if (path === 'investigation-profiles' && body === undefined) {
@@ -536,7 +537,7 @@ test('profile create success closes the form and keeps the returned selection af
       .page()
       .some((node) => typeof node.type === 'function' && node.type.name === 'ProfileEditor'),
   );
-  assert.equal(ui.error(), 'List unavailable');
+  assert.equal(ui.error(), 'Profile saved. Could not refresh the list: List unavailable');
   assert.equal(ui.calls.filter((call) => call.body).length, 1);
 });
 
