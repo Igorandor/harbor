@@ -1,6 +1,9 @@
 import type { CaseCapture } from './investigation.js';
 import type { DiagnosticId, DiagnosticSection } from './diagnostics.js';
 
+export const captureOrderingNotice =
+  'The selected earlier capture did not finish before the later capture. Check capture ordering.';
+
 export const reviewDispositions = ['unreviewed', 'expected', 'investigate', 'explained'] as const;
 export type ReviewDisposition = (typeof reviewDispositions)[number];
 export type DifferenceKind = 'added' | 'removed' | 'changed' | 'type changed';
@@ -301,9 +304,7 @@ export function compareEvidence(before: CaseCapture, after: CaseCapture): Eviden
     'Values are compared as returned by the source. Missing data and null are different.',
   ];
   if (Date.parse(before.bundle.finishedAt) >= Date.parse(after.bundle.finishedAt))
-    notices.push(
-      'The selected earlier capture did not finish before the later capture. Check capture ordering.',
-    );
+    notices.push(captureOrderingNotice);
   return {
     version: 1,
     instance: before.bundle.instance,

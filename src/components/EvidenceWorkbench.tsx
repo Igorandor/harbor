@@ -5,6 +5,7 @@ import '../evidence.css';
 import type { Investigation } from '../../shared/investigation';
 import {
   compareEvidence,
+  captureOrderingNotice,
   comparisonCsv,
   comparisonReport,
   defaultEvidenceFilter,
@@ -132,6 +133,11 @@ export function EvidenceWorkbench({
       ) : null}
       {comparison ? (
         <>
+          {comparison.notices.includes(captureOrderingNotice) ? (
+            <p className="notice warning" role="status">
+              {captureOrderingNotice}
+            </p>
+          ) : null}
           <SourceCoverage comparison={comparison} />
           {!review && editable ? (
             <form
@@ -322,9 +328,11 @@ export function EvidenceWorkbench({
           <details className="scope-note">
             <summary>Comparison scope and limits</summary>
             <ul>
-              {comparison.notices.map((notice) => (
-                <li key={notice}>{notice}</li>
-              ))}
+              {comparison.notices
+                .filter((notice) => notice !== captureOrderingNotice)
+                .map((notice) => (
+                  <li key={notice}>{notice}</li>
+                ))}
             </ul>
             <p>
               Each source retains up to 200 differences and examines up to 12,000 nodes. Value
