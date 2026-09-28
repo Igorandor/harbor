@@ -318,7 +318,7 @@ export function Changes() {
                   <dd>
                     {awaitingRead === selected.id
                       ? 'Awaiting record refresh'
-                      : (selected.nativeStatus ?? 'Not sent')}
+                      : (selected.nativeStatus ?? 'Not recorded')}
                   </dd>
                 </div>
                 <div>

@@ -1,5 +1,13 @@
 # Verification record
 
+## Current collection metadata and missing responses — September 28, 2026
+
+Wallet details previously reused the selected table row even after a refused read, a changed type or an empty metadata response. Details now select the exact identity from the current metadata list. Missing records have an explicit message; loading, failed or missing required reads disable source-backed actions. Task actions also need the task-status read. Process controls use current detail capabilities rather than older list flags; native generation and exact-target confirmation remain in place. Secret values are never retrieved.
+
+The change-history response field previously displayed Not sent when nativeStatus was absent. Interrupted dispatch recovery and later reconciliation can legitimately leave that field absent, so the label is now Not recorded. A failing-before/passing-after component regression covers both states and preserves a recorded 200 status, with no write requests.
+
+Production build and 320 Node tests passed, including 14 execution-recovery checks. Twenty-one actual Collection browser checks passed for pending/denied/missing/updated reads, exact identity, read-only access, credential controls, task sources and both directions of changed process capabilities. Desktop and 390px checks verified updated metadata, missing-record guidance, denied actions and successful Try again recovery; width 390px without overflow. The response label was checked on desktop and 390px separately. All transport was synthetic, with no native reads or writes. Run `node scripts/test-collection-browser.mjs` and open its printed URL.
+
 ## Access after a refused change action — September 28, 2026
 
 A 403 response to execution, cancellation or reconciliation now triggers one read of the original receipt. A successful read updates the receipt and preserves the refusal message; a denied or missing read clears its protected cache. A temporary recheck failure hides its details, summary and export until an explicit same-ID read succeeds. Each unavailable receipt has its own recovery control identified by its opaque ID. Reading another receipt or refreshing the list cannot clear that requirement. No action is automatically repeated, and the pending lock covers the entire recheck.

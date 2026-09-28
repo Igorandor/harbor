@@ -214,6 +214,7 @@ function RecordDetail({
     [error, setError] = useState('');
 
   async function execute() {
+    if (!canAct || busy || confirmation !== identity) return;
     setBusy(true);
     setError('');
     try {
@@ -247,7 +248,18 @@ function RecordDetail({
     }
   }
 
-  const data = entity.noDetail ? row : resource.data;
+  const data = entity.noDetail
+    ? Array.isArray(resource.data)
+      ? resource.data.find((record) => String(record?.[entity.key]) === identity)
+      : undefined
+    : resource.data;
+
+  const canAct =
+    canWrite &&
+    !!data &&
+    !resource.loading &&
+    !resource.error &&
+    (entity.id !== 'tasks' || (!!taskInfo.data && !taskInfo.loading && !taskInfo.error));
 
   const suspended = taskInfo.data?.Suspended;
 
@@ -276,8 +288,8 @@ function RecordDetail({
 
   return (
     <Modal
-      title={String(row.Name ?? row.Alias ?? identity)}
-      subtitle={entity.singular + ' · ' + identity}
+      title={data ? String(data.Name ?? data.Alias ?? identity) : entity.singular + ' details'}
+      subtitle={data ? entity.singular + ' · ' + identity : undefined}
       onClose={() => {
         if (!busy) onClose();
       }}
@@ -314,7 +326,16 @@ function RecordDetail({
             {resource.error && <ErrorBox error={resource.error} retry={resource.refresh} />}
             {taskInfo.error && <ErrorBox error={taskInfo.error} retry={taskInfo.refresh} />}
             {!data ? (
-              resource.loading && <Loading />
+              resource.loading ? (
+                <Loading />
+              ) : (
+                !resource.error && (
+                  <p className="notice">
+                    This record is not present in the current response. Close this view and refresh
+                    the table.
+                  </p>
+                )
+              )
             ) : (
               <>
                 <Details data={data} />
@@ -339,7 +360,7 @@ function RecordDetail({
             </button>
             <button
               className="danger"
-              disabled={confirmation !== identity || busy}
+              disabled={!canAct || confirmation !== identity || busy}
               onClick={execute}
             >
               {busy ? 'Applying…' : 'Confirm ' + action}
@@ -351,11 +372,11 @@ function RecordDetail({
             <div className="inline-actions">
               {entity.id === 'tasks' && canWrite && (
                 <>
-                  <button onClick={() => setAction('run')}>
+                  <button disabled={!canAct} onClick={() => setAction('run')}>
                     <Play size={15} /> Run now
                   </button>
                   <button
-                    disabled={suspended === undefined}
+                    disabled={!canAct || suspended === undefined}
                     onClick={() => setAction(suspended ? 'resume' : 'suspend')}
                   >
                     <Pause size={15} />
@@ -366,15 +387,18 @@ function RecordDetail({
 
               {entity.id === 'processes' && canWrite && (
                 <>
-                  <button disabled={!row.CanBeSuspended} onClick={() => setAction('suspend')}>
+                  <button
+                    disabled={!canAct || !data?.CanBeSuspended}
+                    onClick={() => setAction('suspend')}
+                  >
                     <Pause size={15} /> Suspend
                   </button>
-                  <button onClick={() => setAction('resume')}>
+                  <button disabled={!canAct} onClick={() => setAction('resume')}>
                     <Play size={15} /> Resume
                   </button>
                   <button
                     className="danger"
-                    disabled={!row.CanBeTerminated}
+                    disabled={!canAct || !data?.CanBeTerminated}
                     onClick={() => setAction('terminate')}
                   >
                     <Square size={15} /> Terminate
@@ -383,7 +407,7 @@ function RecordDetail({
               )}
 
               {['users', 'oauthClients'].includes(entity.id) && canWrite && (
-                <button onClick={() => setSecretEditor(true)}>
+                <button disabled={!canAct} onClick={() => setSecretEditor(true)}>
                   <KeyRound size={15} />{' '}
                   {entity.id === 'users' ? 'Reset password' : 'Client credentials'}
                 </button>
@@ -391,12 +415,16 @@ function RecordDetail({
 
               {!entity.readonly && canWrite && (
                 <>
-                  <button className="danger subtle" onClick={() => setAction('delete')}>
+                  <button
+                    className="danger subtle"
+                    disabled={!canAct}
+                    onClick={() => setAction('delete')}
+                  >
                     <Trash2 size={15} /> Delete
                   </button>
                   <button
                     className="primary"
-                    disabled={!data && !entity.noDetail}
+                    disabled={!canAct}
                     onClick={() => onEdit(entity.noDetail ? undefined : data)}
                   >
                     <Pencil size={15} /> {entity.noDetail ? 'Rotate' : 'Edit'}

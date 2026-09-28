@@ -60,6 +60,8 @@ A denied or missing receipt is removed from the current view and its export. An 
 
 If an action is refused, Harbor checks whether the same saved receipt can still be read. A permitted read keeps the receipt and the refusal message. If that check is temporarily unavailable, its details and export stay hidden; use **Retry record access** for the displayed record ID. Refreshing the list or reading another receipt does not verify this one. A denied or missing receipt is removed from the view. No refused action is automatically repeated.
 
+**Native response: Not recorded** means the saved receipt has no response status. It does not prove that a request was never sent; after an interrupted dispatch, inspect or reconcile the current state before deciding what to do next.
+
 Inspect the receipt state:
 
 | State              | Meaning and next action                                                                                                                |
@@ -73,6 +75,12 @@ Inspect the receipt state:
 Write-only credentials remain in gateway memory only while the prepared review is valid. They are absent from saved receipts. Restarting the gateway invalidates an unexecuted preparation that needs those credentials. Prepare it again after checking its status; do not treat an old receipt as replayable.
 
 Process actions require native generation identity and capabilities. The active administrator and management routes have additional protection against accidental loss of access. Impact findings are advisory references, not a complete effective-permission proof.
+
+## Read current metadata before acting
+
+Wallet detail views refresh the collection metadata and select the exact secret name. Stored secret values are never retrieved. If the current response no longer contains that entry, close the detail and refresh the table.
+
+Detail actions stay disabled while a required read is loading, failed or missing. Use **Try again** after a read error. Task actions require both the task record and execution status; process controls use capabilities from the current detail response. Native permission, identity and confirmation checks still apply when an action is submitted.
 
 ## Inspect runtime, tasks and application dependencies
 

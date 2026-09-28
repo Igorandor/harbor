@@ -409,3 +409,40 @@ test('change detail never presents an earlier retained field value as the curren
   assert.equal(payload.evidenceOmissions[0].previousRetained, true);
   assert.equal(button(rendered, 'Export record').props.disabled, false);
 });
+
+test('an interrupted receipt and later reconciled result do not imply that no request was sent', async () => {
+  const f = await selectedChange();
+  const nativeResponse = (view: any) => {
+    const fact = nodes(view).find(
+      (node) =>
+        node.type === 'div' &&
+        Array.isArray(node.props?.children) &&
+        node.props.children.some(
+          (child: any) => child?.type === 'dt' && text(child) === 'Native response',
+        ),
+    );
+    return text(nodes(fact).find((node) => node.type === 'dd'));
+  };
+  for (const state of ['uncertain', 'verified']) {
+    const record = {
+      ...ticket('ticket-A', state),
+      nativeStatus: undefined,
+      explanation:
+        state === 'uncertain'
+          ? 'The gateway did not retain the final result.'
+          : 'Current state matches the reviewed fields after reconciliation.',
+    };
+    f.responses.push(Response.json(record));
+    await button(f.render(), 'Refresh record').props.onClick();
+    await settle();
+    const view = f.render();
+    assert.equal(nativeResponse(view), 'Not recorded');
+    assert.ok(!text(view).includes('Not sent'));
+    assert.ok(!text(view).includes('Execute reviewed change'));
+  }
+  f.responses.push(Response.json(ticket('ticket-A', 'verified')));
+  await button(f.render(), 'Refresh record').props.onClick();
+  await settle();
+  assert.equal(nativeResponse(f.render()), '200');
+  assert.equal(f.calls.filter((call) => call.body !== undefined).length, 0);
+});
