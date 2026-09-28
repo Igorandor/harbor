@@ -32,6 +32,8 @@ Starting an investigation from a profile opens the returned investigation direct
 
 Captures are immutable. Changing a decision does not change the underlying observations. A review conclusion is the analyst's assessment, not a machine-issued declaration that the instance is healthy. A reopened review retains its previous conclusion in the case timeline.
 
+While a review form is saving, its fields are temporarily unavailable for editing. If saving fails, the submitted text remains editable. Wait for the result before revising a decision or conclusion.
+
 ![Saved evidence review with decisions and conclusion](images/evidence-review-desktop.png)
 
 The same review is available in the [mobile layout](images/evidence-review-mobile.png). The [verification record](VERIFICATION.md) describes the native and browser checks behind these screenshots.

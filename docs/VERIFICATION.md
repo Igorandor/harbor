@@ -1,5 +1,13 @@
 # Verification record
 
+## Evidence review fields during saving — September 28, 2026
+
+Review title, decision, reasoning, conclusion, acknowledgement and reopening reason are disabled during the existing pending-save state. Previously, a later edit could disappear when the saved record returned and the form reset. Failed saves retain the submitted values and restore editing. Capture-pair binding, difference identities and backend behavior are unchanged.
+
+Production build and 341 tests pass. Sixteen actual-component browser checks cover pending controls, successful saves, retained drafts after refusals, saved decision editing and separation of capture pairs. Run `node scripts/test-evidence-drafts-browser.mjs` and open its printed URL. The transport and records are synthetic; no native calls or durable writes occurred.
+
+Manual desktop and 390px checks confirm disabled pending fields, editable retained text after rejection, and the normal transition after success. Client and scroll widths match at 1280px and 390px. These are responsive browser checks, not physical-device tests.
+
 ## Source capture limits in comparisons — September 28, 2026
 
 Release 1.0.12 retains the collection limits of both input captures, labelled Earlier and Later, and preserves notices from collected sources. The comparison view, JSON export and printable HTML report include this context. A visible explanation distinguishes additions and removals in retained payloads from native object creation or deletion. Comparison traversal bounds, difference IDs, counts, saved decisions and the documented row-only CSV format are unchanged.

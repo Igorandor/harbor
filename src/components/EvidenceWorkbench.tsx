@@ -156,6 +156,7 @@ export function EvidenceWorkbench({
                   minLength={3}
                   maxLength={120}
                   value={title}
+                  disabled={busy}
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder="For example, post-maintenance checks"
                 />
@@ -450,6 +451,7 @@ function DifferenceCard({
             Decision
             <select
               value={disposition}
+              disabled={busy}
               onChange={(event) => setDisposition(event.target.value as ReviewDisposition)}
             >
               {reviewDispositions.map((state) => (
@@ -464,6 +466,7 @@ function DifferenceCard({
               maxLength={2000}
               rows={3}
               value={note}
+              disabled={busy}
               onChange={(event) => setNote(event.target.value)}
             />
           </label>
@@ -542,6 +545,7 @@ function ReviewConclusion({
                   maxLength={2000}
                   rows={3}
                   value={text}
+                  disabled={busy}
                   onChange={(event) => setText(event.target.value)}
                 />
               </label>
@@ -570,6 +574,7 @@ function ReviewConclusion({
               maxLength={4000}
               rows={4}
               value={text}
+              disabled={busy}
               onChange={(event) => setText(event.target.value)}
             />
           </label>
@@ -577,6 +582,7 @@ function ReviewConclusion({
             <input
               type="checkbox"
               checked={acknowledged}
+              disabled={busy}
               onChange={(event) => setAcknowledged(event.target.checked)}
             />
             I reviewed source availability, comparison limits and remaining gaps in the evidence.
