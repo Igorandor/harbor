@@ -38,9 +38,15 @@ The **Log files** workspace includes `messages.old_Date`, the archive name IRIS 
 
 Requirements: Docker Engine/Desktop with Compose v2, at least 4 GB available RAM, and approximately 5 GB free disk space. Linux containers are required. On Windows, start Docker Desktop or a Docker daemon in WSL first.
 
+Get the source with Git, then run Compose from the project directory:
+
 ```sh
+git clone https://github.com/Igorandor/harbor.git
+cd harbor
 docker compose up -d --build
 ```
+
+Alternatively, extract the source ZIP from the [latest release](https://github.com/Igorandor/harbor/releases/latest) and open a terminal in the directory containing `compose.yaml`. If you already have the source, run only the Compose command above.
 
 Open **http://localhost:3100** and sign in:
 
@@ -56,6 +62,8 @@ docker compose ps
 docker compose logs --tail=80 portal iris
 docker compose down          # keeps IRIS data
 ```
+
+Before signing in, check `docker compose ps`: `iris` must be healthy and `portal` must be running. If startup fails, inspect the logs above before retrying; keep the data volumes.
 
 If ports are in use, configure `HARBOR_PORT`, `HARBOR_ORIGIN` and `IRIS_WEB_PORT` together. Example in Bash:
 
