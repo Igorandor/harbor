@@ -322,8 +322,11 @@ test('new, duplicate and template workflows discard obsolete file failures and c
       ui.button(action, action !== profileModel.starterProfiles[0].title).props.onClick();
       editorTitle(ui).props.onChange({ target: { value: 'Newer draft' } });
       const editor = ui.edit();
-      // Closing this real modal is available before a save starts.
+      // Closing a dirty editor now requires an explicit discard decision.
       editor[0].props.onClose();
+      ui.edit()
+        .find((node) => node.type === 'button' && node.props.children === 'Discard draft')!
+        .props.onClick();
       if (failure) read.reject(new Error('Obsolete file failure'));
       else
         read.resolve(JSON.stringify(profileModel.profileExport(profileModel.starterProfiles[1])));

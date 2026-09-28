@@ -536,6 +536,19 @@ function ProfileEditor({
     [reason, setReason] = useState(''),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
+  const original = useRef(JSON.stringify(initial));
+  const saving = useRef(false);
+  const keepEditing = useRef<HTMLButtonElement>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  useEffect(() => {
+    if (confirmDiscard) keepEditing.current?.focus();
+  }, [confirmDiscard]);
+  const dirty = JSON.stringify(draft) !== original.current || reason !== '';
+  function requestClose() {
+    if (saving.current || busy || checking) return;
+    if (dirty) setConfirmDiscard(true);
+    else onClose();
+  }
   const errorRef = useRef<HTMLDivElement>(null);
   const [failure, setFailure] = useState(0);
   useEffect(() => {
@@ -558,7 +571,8 @@ function ProfileEditor({
   }
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (accessPending || busy) return;
+    if (accessPending || busy || saving.current) return;
+    saving.current = true;
     setBusy(true);
     setError('');
     try {
@@ -568,16 +582,47 @@ function ProfileEditor({
       setError(existing ? (error as Error).message : creationFailure(error, 'profiles'));
       setFailure((value) => value + 1);
     } finally {
+      saving.current = false;
       setBusy(false);
     }
   }
+  if (confirmDiscard) {
+    return (
+      <Modal
+        key="discard-profile"
+        title="Discard profile draft?"
+        onClose={() => setConfirmDiscard(false)}
+      >
+        <div className="modal-body">
+          <p>Your profile changes have not been saved. Keep editing or discard this draft.</p>
+        </div>
+        <footer>
+          <button
+            ref={keepEditing}
+            autoFocus
+            disabled={busy || checking}
+            onClick={() => setConfirmDiscard(false)}
+          >
+            Keep editing
+          </button>
+          <button
+            disabled={busy || checking}
+            onClick={() => {
+              if (!saving.current && !busy && !checking) onClose();
+            }}
+          >
+            Discard draft
+          </button>
+        </footer>
+      </Modal>
+    );
+  }
   return (
     <Modal
+      key="profile-editor"
       title={existing ? 'Edit investigation profile' : 'New investigation profile'}
       wide
-      onClose={() => {
-        if (!busy) onClose();
-      }}
+      onClose={requestClose}
     >
       {accessPending ? (
         <div className="modal-body" role="status">
@@ -733,7 +778,7 @@ function ProfileEditor({
           </p>
         </div>
         <footer>
-          <button type="button" disabled={busy} onClick={onClose}>
+          <button type="button" disabled={busy || checking} onClick={requestClose}>
             Cancel
           </button>
           <button className="primary" disabled={busy || !draft.sources.length}>

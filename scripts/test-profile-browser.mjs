@@ -4,8 +4,18 @@ import { build } from 'esbuild';
 
 const port = 3430;
 const origin = `http://127.0.0.1:${port}`;
+const draft = process.argv.includes('--draft');
+const expected = draft ? 16 : 23;
+const label = draft ? 'profile draft dismissal' : 'saved profile access';
 const bundle = await build({
-  entryPoints: [fileURLToPath(new URL('../tests/browser/profile-access.jsx', import.meta.url))],
+  entryPoints: [
+    fileURLToPath(
+      new URL(
+        `../tests/browser/${draft ? 'profile-draft' : 'profile-access'}.jsx`,
+        import.meta.url,
+      ),
+    ),
+  ],
   bundle: true,
   write: false,
   platform: 'browser',
@@ -13,8 +23,7 @@ const bundle = await build({
   loader: { '.css': 'empty' },
   define: { 'process.env.NODE_ENV': '"development"' },
 });
-const html =
-  '<!doctype html><meta charset="utf-8"><title>Harbor saved profile access regression</title><h1>Harbor saved profile access regression</h1><p>Actual component; synthetic captures; no IRIS connection.</p><div id="probe"></div><pre id="result">Running…</pre><script type="module" src="/probe.js"></script>';
+const html = `<!doctype html><meta charset="utf-8"><title>Harbor ${label} regression</title><h1>Harbor ${label} regression</h1><p>Actual component; synthetic responses; no IRIS connection.</p><div id="probe"></div><pre id="result">Running…</pre><script type="module" src="/probe.js"></script>`;
 const server = http.createServer(async (request, response) => {
   if (
     request.headers.host !== `127.0.0.1:${port}` ||
@@ -44,13 +53,13 @@ const server = http.createServer(async (request, response) => {
     const report = JSON.parse(body);
     const passed =
       !report.error &&
-      report.results?.length === 23 &&
+      report.results?.length === expected &&
       report.results.every((result) => result.pass === true) &&
       report.nativeCalls === 0 &&
       report.appliedWrites === 0;
     console.log(JSON.stringify(report, null, 2));
     console.log(
-      passed ? 'PASS: 23/23 saved profile access checks.' : 'FAIL: saved profile access checks.',
+      passed ? `PASS: ${expected}/${expected} ${label} checks.` : `FAIL: ${label} checks.`,
     );
     response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ passed }));
     process.exitCode = passed ? 0 : 1;
@@ -72,5 +81,5 @@ server.on('error', (error) => {
   process.exitCode = 1;
 });
 server.listen(port, '127.0.0.1', () =>
-  console.log(`Open ${origin}/ for 23 actual-component checks.`),
+  console.log(`Open ${origin}/ for ${expected} actual-component checks.`),
 );

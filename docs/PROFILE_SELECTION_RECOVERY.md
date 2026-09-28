@@ -24,4 +24,12 @@ After a refused revision, status change or start request, Harbor checks current 
 
 Run `node scripts/test-profile-browser.mjs` and open its loopback URL. The actual-component suite has 23 synthetic-transport checks for read denial, temporary failure, exact draft/revision retention, source-derived duplicates, independent new drafts and out-of-order list/detail responses. Background ownership probes intentionally invoke controls behind an open modal; they do not claim those controls are user-accessible. No native connection or existing record is used.
 
-September 28 integration: production build and all 319 Node tests passed, followed by 23/23 actual-component browser checks. Desktop editing and 390px start-investigation checks preserved exact fields through a refused write and temporary read failure. Explicit retry restored the same draft; permanent detail/list denial removed details and exports. The phone content measured390px without horizontal overflow. Transport was synthetic and no native or saved data was changed.
+September 28 integration: production build and all 319 Node tests passed, followed by 23/23 actual-component browser checks. Desktop editing and 390px start-investigation checks preserved exact fields through a refused write and temporary read failure. Explicit retry restored the same draft; permanent detail/list denial removed details and exports. The phone content measured 390px without horizontal overflow. Transport was synthetic and no native or saved data was changed.
+
+## Closing an unfinished profile
+
+Escape, the close button and Cancel ask before discarding changes to a profile or its revision reason. **Keep editing** returns to the same fields and checklist; **Discard draft** closes the editor. Unchanged forms, including completely reverted edits, close immediately. A pending save blocks duplicate submission and dismissal.
+
+The question does not override access checks. If current access to a saved source is denied or the source is missing, Harbor removes its protected draft. Unsaved profiles remain in browser memory only; save before reloading, signing out or leaving this workspace.
+
+Verification: production build and 319 Node tests passed. `node scripts/test-profile-browser.mjs --draft` passed all 16 actual-component dismissal checks; the existing 23 access checks also passed. Desktop and 390px browser checks used actual Escape and button input to confirm retained text, immediate closure after reverting all changes, and explicit discard. All transport was synthetic, with no native or durable writes.
