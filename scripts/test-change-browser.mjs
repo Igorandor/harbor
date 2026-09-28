@@ -2,12 +2,20 @@ import http from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
-const port = 3598;
+const mutation = process.argv.includes('--mutation');
+const port = mutation ? 3431 : 3598;
 const origin = `http://127.0.0.1:${port}`;
-const expected = 12;
-const label = 'saved change access';
+const expected = mutation ? 21 : 12;
+const label = mutation ? 'refused change access' : 'saved change access';
 const bundle = await build({
-  entryPoints: [fileURLToPath(new URL('../tests/browser/change-access.jsx', import.meta.url))],
+  entryPoints: [
+    fileURLToPath(
+      new URL(
+        `../tests/browser/${mutation ? 'change-mutation-access' : 'change-access'}.jsx`,
+        import.meta.url,
+      ),
+    ),
+  ],
   bundle: true,
   write: false,
   platform: 'browser',

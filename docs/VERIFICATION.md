@@ -1,5 +1,11 @@
 # Verification record
 
+## Access after a refused change action — September 28, 2026
+
+A 403 response to execution, cancellation or reconciliation now triggers one read of the original receipt. A successful read updates the receipt and preserves the refusal message; a denied or missing read clears its protected cache. A temporary recheck failure hides its details, summary and export until an explicit same-ID read succeeds. Each unavailable receipt has its own recovery control identified by its opaque ID. Reading another receipt or refreshing the list cannot clear that requirement. No action is automatically repeated, and the pending lock covers the entire recheck.
+
+Production build and all 319 Node tests passed, including the 13 execution-recovery cases. Twenty-one actual-component browser checks cover three refused actions, read outcomes, independent unavailable receipts, pending requests and controls for ordinary 409/503 refusals. The existing 12 read-access checks passed again. Desktop cancellation and 390px reconciliation checks verified temporary hiding and explicit recovery; the mobile retry button remained visible and document width stayed 390px. All mutations were synthetic refusals with no native connection or applied writes. Run `node scripts/test-change-browser.mjs --mutation` and open its printed URL.
+
 ## Change history access — September 28, 2026
 
 A denied or missing receipt read previously left its cached detail and export available. Detail 403/404 now removes only the matching receipt; list 403 clears all protected cached records. A successful authorized list closes a selection that is no longer returned, except for explicitly unreadable entries. Temporary errors retain previously received evidence. Existing request serialization and the requirement to retrieve an uncertain execution result by the same receipt ID are unchanged.

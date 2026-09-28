@@ -25,6 +25,12 @@ export function Changes() {
     [confirmation, setConfirmation] = useState('');
   const pending = useRef(false);
   const [awaitingRead, setAwaitingRead] = useState<string>();
+  const [unverified, setUnverified] = useState<string[]>([]);
+  function acceptRecord(record: ChangeRecord, id: string) {
+    setSelected(record);
+    setAwaitingRead((current) => (current === id ? undefined : current));
+    setUnverified((current) => current.filter((recordId) => recordId !== id));
+  }
   function acceptListing(value: Listing) {
     setListing(value);
     setSelected((current) =>
@@ -44,6 +50,7 @@ export function Changes() {
   }
   function removeDeniedRecord(id: string) {
     setSelected((current) => (current?.id === id ? undefined : current));
+    setUnverified((current) => current.filter((recordId) => recordId !== id));
     setListing(
       (current) =>
         current && {
@@ -79,8 +86,7 @@ export function Changes() {
     setError('');
     setConfirmation('');
     try {
-      setSelected(await request<ChangeRecord>('changes/' + id));
-      setAwaitingRead((current) => (current === id ? undefined : current));
+      acceptRecord(await request<ChangeRecord>('changes/' + id), id);
     } catch (error) {
       if (error instanceof RequestError && [403, 404].includes(error.status))
         removeDeniedRecord(id);
@@ -91,7 +97,13 @@ export function Changes() {
     }
   }
   async function act(action: 'execute' | 'cancel' | 'reconcile') {
-    if (!selected || pending.current || awaitingRead === selected.id) return;
+    if (
+      !selected ||
+      pending.current ||
+      awaitingRead === selected.id ||
+      unverified.includes(selected.id)
+    )
+      return;
     if (action === 'execute' && confirmation !== selected.target) return;
     const record = selected;
     pending.current = true;
@@ -121,6 +133,21 @@ export function Changes() {
         setAwaitingRead(record.id);
         setConfirmation('');
       }
+      if (error instanceof RequestError && error.status === 403) {
+        setUnverified((current) => [...new Set([...current, record.id])]);
+        setConfirmation('');
+        try {
+          acceptRecord(await request<ChangeRecord>('changes/' + record.id), record.id);
+        } catch (readError) {
+          if (readError instanceof RequestError && [403, 404].includes(readError.status))
+            removeDeniedRecord(record.id);
+          setError(
+            error.message +
+              ' The saved change could not be reloaded: ' +
+              (readError as Error).message,
+          );
+        }
+      }
     } finally {
       pending.current = false;
       setBusy(false);
@@ -131,6 +158,7 @@ export function Changes() {
       .toLowerCase()
       .includes(query.toLowerCase());
     return (
+      !unverified.includes(record.id) &&
       found &&
       (filter === 'all' ||
         (filter === 'attention'
@@ -149,6 +177,24 @@ export function Changes() {
         </button>
       </PageHeader>
       {error && <ErrorBox error={error} />}
+      {unverified.map((id) => (
+        <div className="notice warning" key={id}>
+          <p>
+            Access to a saved change could not be confirmed. Its details and export are hidden until
+            the record can be read again.
+          </p>
+          <p>
+            Record: <code style={{ overflowWrap: 'anywhere' }}>{id}</code>
+          </p>
+          <button
+            disabled={busy}
+            aria-label={'Retry access to record ' + id}
+            onClick={() => void inspect(id)}
+          >
+            Retry record access
+          </button>
+        </div>
+      ))}
       {listing?.unreadable.length ? (
         <div className="notice warning">
           {listing.unreadable.length} stored records could not be read. Preserve the data directory
@@ -199,7 +245,7 @@ export function Changes() {
           ) : null}
         </section>
         <section className="panel record-workbench" aria-label="Change details">
-          {selected ? (
+          {selected && !unverified.includes(selected.id) ? (
             <>
               <div className="section-heading">
                 <div>

@@ -58,6 +58,8 @@ If the browser loses an execution response, the request may already have reached
 
 A denied or missing receipt is removed from the current view and its export. An authorized refresh of the list also closes a receipt that is no longer returned, unless the list explicitly reports it as unreadable. After access is restored, refresh the list and open the receipt again. These reads never repeat a native change.
 
+If an action is refused, Harbor checks whether the same saved receipt can still be read. A permitted read keeps the receipt and the refusal message. If that check is temporarily unavailable, its details and export stay hidden; use **Retry record access** for the displayed record ID. Refreshing the list or reading another receipt does not verify this one. A denied or missing receipt is removed from the view. No refused action is automatically repeated.
+
 Inspect the receipt state:
 
 | State              | Meaning and next action                                                                                                                |
