@@ -36,11 +36,11 @@ Harbor is an administration portal for InterSystems IRIS. Inspect tasks, logs, p
 
 ## Current review status
 
-See [the latest authorization and readiness review](CONTEST_SECURITY_REVIEW.md). The repository and Open Exchange application are public, and the application appears on the official contest list. Participant eligibility and organizer acceptance remain the organizer’s decision. The earlier Harbor foundation was removed from the current Atlas and Waypoint application implementations. Each project now has an independent repository and runtime. Retained history, test ancestry and external references are disclosed in [provenance](PROVENANCE.md); separate contest acceptance remains the organizer's decision.
+See [the latest authorization and readiness review](CONTEST_SECURITY_REVIEW.md). The repository and Open Exchange application are public, and the application appears on the official contest list. Participant eligibility and organizer acceptance remain the organizer’s decision.
 
 ## Original idea and current walkthrough
 
-The [original project idea](../IDEA.md) and the additional product-specific walkthrough in [README](../README.md) describe the current independent release. The official [contest page](https://openexchange.intersystems.com/contest/48), read September 26, lists the submission deadline as September 27, 2026, 23:59 EST. It also identifies complexity, clarity of instructions, developer experience, applicability and usability as judging criteria. No acceptance or bonus award is implied.
+The [original project idea](../IDEA.md) and the additional product-specific walkthrough in [README](../README.md) describe the application. The official [contest page](https://openexchange.intersystems.com/contest/48), read September 26, lists the submission deadline as September 27, 2026, 23:59 EST. It also identifies complexity, clarity of instructions, developer experience, applicability and usability as judging criteria. No acceptance or bonus award is implied.
 
 ## Video and online-demo preparation
 

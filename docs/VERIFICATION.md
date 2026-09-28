@@ -184,7 +184,7 @@ The current build passes 76 tests. The rebuilt gateway passed the new `npm run t
 
 ## September 26 installation follow-up
 
-The final Harbor source passes 76 tests, the production build, npm audit (zero reports), current native authorization and installed-gateway checks. A clean native image build passed after fixing failed-status and runtime-error termination in installation/configuration scripts. Offline log-window tests cover a very long leading line without unbounded reads. These changes preserve Harbor's existing administration UI. Atlas and Relay now have independent application foundations; see their provenance documents.
+The final Harbor source passes 76 tests, the production build, npm audit (zero reports), current native authorization and installed-gateway checks. A clean native image build passed after fixing failed-status and runtime-error termination in installation/configuration scripts. Offline log-window tests cover a very long leading line without unbounded reads. These changes preserve Harbor's existing administration UI.
 
 ## Final independent release verification
 

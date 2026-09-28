@@ -4,7 +4,7 @@ When a scheduled task runs slowly, its execution history is a useful starting po
 
 Harbor stores that work in an investigation: diagnostic captures, notes, a checklist and links to administrative changes. This walkthrough creates an investigation and compares two captures without changing IRIS configuration.
 
-The [source repository](https://github.com/Igorandor/harbor) includes installation instructions, an operational guide and verification records. Development used AI assistance; implementation provenance and third-party attribution are documented in the repository.
+The [source repository](https://github.com/Igorandor/harbor) includes installation instructions, an operational guide and verification records.
 
 ## Run Harbor
 

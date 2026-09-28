@@ -4,4 +4,4 @@ An operator investigating a slow task needs configuration, execution history and
 
 Created for the [InterSystems management portal contest](https://openexchange.intersystems.com/contest/48). This document describes this project's own motivation; it is not a claim to have implemented a particular InterSystems Ideas Community Opportunity or earned that bonus.
 
-See [README](README.md) for installation and the working demonstration, and [contest coverage](docs/CONTEST.md) for precise scope. Development used AI assistance; third-party references and implementation history are disclosed in the repository.
+See [README](README.md) for installation and the working demonstration, and [contest coverage](docs/CONTEST.md) for precise scope.

@@ -162,7 +162,7 @@ Node.js gateway (Express)
 - `iris/Harbor`: native extension, installer and harmless demo task.
 - `tests`: security boundaries and contract checks; `scripts`: reproducible live checks.
 
-There is no background AI service, analytics, paid API, cloud account requirement or simulated backend. See [architecture](docs/ARCHITECTURE.md) and [contest coverage](docs/CONTEST.md).
+See [architecture](docs/ARCHITECTURE.md) and [contest coverage](docs/CONTEST.md).
 
 ## License and attribution
 
@@ -179,5 +179,3 @@ See [the original project idea](IDEA.md). The written walkthrough above is part 
 ## Author
 
 [Igor Podlewski on Developer Community](https://community.intersystems.com/user/igor-podlewski) · [GitHub](https://github.com/Igorandor)
-
-Development used AI assistance. See [provenance](docs/PROVENANCE.md) for implementation history and attribution.

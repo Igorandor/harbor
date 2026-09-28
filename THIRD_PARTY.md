@@ -4,5 +4,3 @@
 - InterSystems IRIS Community is distributed under InterSystems' terms. The Docker reference does not change those terms.
 - DM Sans and Manrope fonts are bundled through Fontsource under their SIL Open Font License distributions.
 - Lucide icons use the ISC license. React, Express, Vite and the remaining npm dependencies retain their respective licenses; exact resolved versions are recorded in `package-lock.json`.
-
-The administration foundation was created for Harbor and is also used by the sibling Access Atlas and Relay projects. Those projects add separate access-review and durable-operations domains. They should be presented with this reuse disclosed; separate repositories alone do not establish contest originality or organizer approval.
