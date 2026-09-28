@@ -1,5 +1,13 @@
 # Verification record
 
+## Duration summary context — September 29, 2026
+
+Release 1.0.15 shows the existing wall-clock caveat beside task-history statistics when a measured row in the filtered sample has no timestamp offset. The same notice was previously available only in individual execution details. Native strings, calculations, date filters, raw exports and schedule interpretation are unchanged. This corrects missing presentation context; no native timezone conversion defect or real clock-change incident was established.
+
+Production build and the existing 341 tests pass. Seven actual TaskCenter browser checks verify the aggregate notice, unchanged median/percentile values and timestamps, offset-only records, unfinished records, mixed samples and filtering. Run `node scripts/test-task-duration-browser.mjs` and open its printed URL.
+
+Manual desktop and 390px checks confirm the notice is readable beside the statistics. Filtering the mixed sample to offset-bearing records removes the caveat while retaining its duration statistics. Document client/scroll widths match at 1280px and 390px. All records and transport are synthetic, with no native calls or durable writes.
+
 ## Investigation creation fields — September 29, 2026
 
 The ordinary and saved-profile creation forms disable their seven editable fields while saving. Synchronous request and dismissal guards retain the submitted draft. Failed requests restore editing with the same values; existing warnings for unconfirmed creation and profile access checks are unchanged.

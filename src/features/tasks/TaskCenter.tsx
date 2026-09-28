@@ -12,6 +12,7 @@ import {
   taskChanges,
   taskFindings,
   taskText,
+  taskTimestamp,
   type Execution,
   type ExecutionFilter,
   type TaskObservation,
@@ -250,6 +251,9 @@ function TaskHistory({ observation }: { observation: TaskObservation }) {
   );
   const filtered = useMemo(() => filterExecutions(executions, filter), [executions, filter]);
   const summary = executionSummary(filtered);
+  const wallClockNotice = filtered.find(
+    (row) => row.durationMs !== undefined && taskTimestamp(row.started)?.basis === 'wall',
+  )?.durationNotice;
   const count = Math.max(1, Math.ceil(filtered.length / 20));
   const currentPage = Math.min(page, count - 1);
   const shown = filtered.slice(currentPage * 20, currentPage * 20 + 20);
@@ -268,6 +272,7 @@ function TaskHistory({ observation }: { observation: TaskObservation }) {
         <Stat label="Median duration">{formatDuration(summary.median)}</Stat>
         <Stat label="95th percentile duration">{formatDuration(summary.p95)}</Stat>
       </div>
+      {wallClockNotice && <p className="scope-note task-duration-notice">{wallClockNotice}</p>}
       <section className="panel padded">
         <div className="task-section-heading">
           <h2>Execution history</h2>

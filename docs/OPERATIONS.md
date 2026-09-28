@@ -92,7 +92,7 @@ Detail actions stay disabled while a required read is loading, failed or missing
 
 **Runtime workbench** keeps a bounded browser session of timestamped samples. Configure thresholds for the observed metrics and compare samples with their intervals. Missing metrics remain unknown. Linux host counters do not establish container quotas, and monitor data can be stale. No background alert delivery or automatic repair is implied.
 
-**Task center** joins the native task definition, execution state and a bounded history window. Unknown outcomes remain unknown; duration statistics use only valid timestamp pairs. Native schedule fields are explained without inventing future occurrences. Configuration comparison uses a browser-held baseline and does not modify a task.
+**Task center** joins the native task definition, execution state and a bounded history window. Unknown outcomes remain unknown; duration statistics use only valid timestamp pairs. Native timestamps are shown as returned, without inferring an offset or converting an unzoned value to the browser's timezone. When the filtered duration sample contains timestamps without offsets, a notice beside the summary explains that these are wall-clock differences: clock changes can affect them. Native schedule fields are explained without inventing future occurrences. Configuration comparison uses a browser-held baseline and does not modify a task.
 
 See the [task center desktop view](images/task-center-desktop.png) and [mobile view](images/task-center-mobile.png).
 
