@@ -6,6 +6,7 @@ import type { Investigation } from '../../shared/investigation';
 import {
   compareEvidence,
   captureOrderingNotice,
+  captureWindowNotice,
   comparisonCsv,
   comparisonReport,
   defaultEvidenceFilter,
@@ -139,6 +140,7 @@ export function EvidenceWorkbench({
             </p>
           ) : null}
           <SourceCoverage comparison={comparison} />
+          <p className="notice">{captureWindowNotice}</p>
           {!review && editable ? (
             <form
               className="evidence-review-create"
@@ -329,7 +331,9 @@ export function EvidenceWorkbench({
             <summary>Comparison scope and limits</summary>
             <ul>
               {comparison.notices
-                .filter((notice) => notice !== captureOrderingNotice)
+                .filter(
+                  (notice) => notice !== captureOrderingNotice && notice !== captureWindowNotice,
+                )
                 .map((notice) => (
                   <li key={notice}>{notice}</li>
                 ))}

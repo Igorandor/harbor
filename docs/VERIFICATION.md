@@ -1,5 +1,13 @@
 # Verification record
 
+## Source capture limits in comparisons — September 28, 2026
+
+Release 1.0.12 retains the collection limits of both input captures, labelled Earlier and Later, and preserves notices from collected sources. The comparison view, JSON export and printable HTML report include this context. A visible explanation distinguishes additions and removals in retained payloads from native object creation or deletion. Comparison traversal bounds, difference IDs, counts, saved decisions and the documented row-only CSV format are unchanged.
+
+A synthetic upstream behind the actual diagnostic collector reproduced a 100-row task window shifting after an insertion: the last previously captured task remained in the source but disappeared from the returned window. Seven actual-component browser checks pass, including visible context, provenance and deduplication, source notices and times, actual JSON/HTML download payloads, text escaping and an unchanged bounded sample. No native or durable records were changed.
+
+Production build and 341 tests pass. Manual desktop and 390px checks confirm that the boundary notice remains visible for unchanged samples, the scope disclosure retains both inputs, and the generated HTML is readable on a narrow screen. The application measures 390px client/scroll width; the report measures 375px within the 390px frame because of its scrollbar. These are responsive browser checks, not physical-device or printer certification.
+
 ## Separate investigation form drafts — September 28, 2026
 
 Timeline notes, status reasons and related-change context previously shared one value. Editing another form replaced the Timeline draft, and saving that form cleared it. Each now has its own state and payload. Confirmed saves clear only the submitted form; failures preserve drafts. Current-access denial still removes the protected workbench. Checklist outcome/reason controls are disabled while saving, preventing an intervening edit from being lost when the saved row returns.

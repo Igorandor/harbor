@@ -8,6 +8,7 @@ import express from 'express';
 import supertest from 'supertest';
 import {
   compareEvidence,
+  captureWindowNotice,
   comparisonCsv,
   comparisonReport,
   defaultEvidenceFilter,
@@ -17,6 +18,7 @@ import {
 import type { CaseCapture, Investigation } from '../shared/investigation.js';
 import { summarizeCase } from '../shared/investigation.js';
 import { diagnosticSources, type DiagnosticId } from '../shared/diagnostics.js';
+import { captureDiagnostics } from '../server/diagnostics.js';
 import { InvestigationService } from '../server/investigation-service.js';
 import { WorkspaceStore } from '../server/workspace-store.js';
 import { ApiError, IrisClient } from '../server/upstream.js';
@@ -453,4 +455,82 @@ test('review routes require current source privileges and explicit limit acknowl
     })
     .expect(403);
   assert.equal((await f.service.get(actor, f.record.id)).revision, value.revision);
+});
+
+test('comparison retains distinct capture-limit provenance and escapes it in the HTML report', () => {
+  const before = capture({ value: 1 }),
+    after = capture({ value: 2 });
+  before.bundle.limits = ['Earlier window <b>bounded</b>', 'Shared bound', 'Shared bound'];
+  after.bundle.limits = ['Later window', 'Shared bound'];
+  const result = compareEvidence(before, after);
+  assert.equal(
+    result.notices.filter((notice) => notice === 'Earlier capture: Shared bound').length,
+    1,
+  );
+  assert.equal(
+    result.notices.filter((notice) => notice === 'Later capture: Shared bound').length,
+    1,
+  );
+  assert.ok(result.notices.includes('Earlier capture: Earlier window <b>bounded</b>'));
+  assert.ok(result.notices.includes('Later capture: Later window'));
+  const html = comparisonReport(result);
+  assert.ok(html.includes('Earlier window &lt;b&gt;bounded&lt;/b&gt;'));
+  assert.ok(!html.includes('<b>bounded</b>'));
+  assert.ok(result.notices.includes(captureWindowNotice));
+});
+test('collected source notices survive an unchanged bounded comparison without changing source status', () => {
+  const before = capture({ value: 1 }),
+    after = capture({ value: 1 });
+  before.bundle.sections[0].notice = 'Earlier sample window';
+  after.bundle.sections[0].notice = 'Later sample <em>window</em>';
+  before.bundle.limits = ['Only retained values are available'];
+  const result = compareEvidence(before, after);
+  assert.equal(result.sources[0].status, 'unchanged');
+  assert.equal(result.differenceCount, 0);
+  assert.equal(result.limitedCount, 0);
+  assert.deepEqual(result.sources[0].notices, [
+    'Earlier: Earlier sample window',
+    'Later: Later sample <em>window</em>',
+  ]);
+  assert.equal(result.sources[0].beforeObservedAt, before.bundle.sections[0].observedAt);
+  assert.equal(result.sources[0].afterObservedAt, after.bundle.sections[0].observedAt);
+  assert.ok(comparisonReport(result).includes('Later sample &lt;em&gt;window&lt;/em&gt;'));
+});
+test('a real bounded collector window retains its limits without changing diff IDs, counts or CSV', async () => {
+  let current = Array.from({ length: 101 }, (_, i) => ({ Id: i + 1, Name: 'Task ' + (i + 1) }));
+  const client = {
+    request: async (_auth: string, input: { query: Record<string, string> }) => ({
+      status: 200,
+      data: structuredClone(current.slice(0, Number(input.query.maxRows))),
+      console: [],
+    }),
+  } as unknown as IrisClient;
+  const before = capture([], 'tasks'),
+    after = capture([], 'tasks');
+  before.bundle = await captureDiagnostics(client, 'synthetic', 'one', ['tasks']);
+  current = [{ Id: 0, Name: 'New task' }, ...current];
+  after.bundle = await captureDiagnostics(client, 'synthetic', 'one', ['tasks']);
+  assert.ok(
+    current.some((row) => row.Id === 100),
+    'The task still exists beyond the captured window',
+  );
+  const result = compareEvidence(before, after);
+  assert.equal(result.differenceCount, 2);
+  assert.equal(result.limitedCount, 0);
+  assert.equal(result.sources[0].status, 'changed');
+  assert.ok(
+    result.sources[0].differences.some((row) => row.kind === 'removed' && row.path === '/@Id=100'),
+  );
+  assert.ok(
+    result.notices.some((notice) =>
+      notice.startsWith('Earlier capture: Lists request at most 100 rows'),
+    ),
+  );
+  const strippedBefore = structuredClone(before),
+    strippedAfter = structuredClone(after);
+  strippedBefore.bundle.limits = [];
+  strippedAfter.bundle.limits = [];
+  const withoutLimits = compareEvidence(strippedBefore, strippedAfter);
+  assert.deepEqual(result.sources, withoutLimits.sources);
+  assert.equal(comparisonCsv(result, []), comparisonCsv(withoutLimits, []));
 });

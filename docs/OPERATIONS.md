@@ -38,6 +38,8 @@ The same review is available in the [mobile layout](images/evidence-review-mobil
 
 The comparison matches only recognized root inventory identities: native task IDs, journal filenames, and process generations when supplied. Unknown arrays and nested configuration preserve order. A process ID alone is insufficient to identify a process across two captures. Logs and history are bounded windows; entries disappearing between windows do not establish deletion from the underlying source.
 
+Check **Comparison scope and limits** for the collection limits of the earlier and later captures, and expand each source for its notices. A changed or unchanged source describes the retained values only. The comparison's own traversal limit is separate from a source's row or tail limit; zero limited comparisons does not establish a complete inventory. For example, a new task at the beginning of a 100-row result can push an existing task out of that window.
+
 Exports include a complete bounded case JSON, a printable case report, and per-comparison JSON, HTML and CSV. The case report identifies the saved case, account, instance and revision. Its recorded resolution is labelled as previous when the investigation is active again. Include the case JSON when the recipient needs the complete saved record, including decision history. The CSV contains retained differences and current decisions; unavailable-source details and comparison limits are in JSON/HTML. Value previews in comparison exports can be clipped. Retained full payloads are available in the case captures. Operational free text may contain sensitive information: inspect it before sharing.
 
 ## Reuse an investigation profile

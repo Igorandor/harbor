@@ -3,6 +3,8 @@ import type { DiagnosticId, DiagnosticSection } from './diagnostics.js';
 
 export const captureOrderingNotice =
   'The selected earlier capture did not finish before the later capture. Check capture ordering.';
+export const captureWindowNotice =
+  'Added and removed describe retained values, not proof that an IRIS object was created or deleted. Capture row and log limits still apply.';
 
 export const reviewDispositions = ['unreviewed', 'expected', 'investigate', 'explained'] as const;
 export type ReviewDisposition = (typeof reviewDispositions)[number];
@@ -159,22 +161,23 @@ function compareSection(
     beforeObservedAt: left?.observedAt,
     afterObservedAt: right?.observedAt,
     differences: [],
-    notices: [],
+    notices: [
+      ...(left?.notice ? ['Earlier: ' + left.notice] : []),
+      ...(right?.notice ? ['Later: ' + right.notice] : []),
+    ],
     examinedNodes: 0,
   };
   if (left?.status !== 'collected' || right?.status !== 'collected') {
     result.notices.push(
       'Both captures must contain a collected source before values can be compared.',
     );
-    if (left?.notice) result.notices.push('Earlier: ' + left.notice);
-    if (right?.notice) result.notices.push('Later: ' + right.notice);
     return result;
   }
   if (left.data === undefined || right.data === undefined) {
     result.notices.push('A collected source has no retained payload. It is not an empty result.');
     return result;
   }
-  const notices = new Set<string>();
+  const notices = new Set<string>(result.notices);
   let limited = false;
   function add(a: Value, b: Value, path: string, context?: string) {
     if (result.differences.length >= maxDifferences) {
@@ -302,6 +305,9 @@ export function compareEvidence(before: CaseCapture, after: CaseCapture): Eviden
     'Each source was read separately. A comparison is not an atomic snapshot or proof of causation.',
     'Counters and timestamps normally change. A numeric difference is not a rate or an incident verdict.',
     'Values are compared as returned by the source. Missing data and null are different.',
+    captureWindowNotice,
+    ...[...new Set(before.bundle.limits)].map((limit) => 'Earlier capture: ' + limit),
+    ...[...new Set(after.bundle.limits)].map((limit) => 'Later capture: ' + limit),
   ];
   if (Date.parse(before.bundle.finishedAt) >= Date.parse(after.bundle.finishedAt))
     notices.push(captureOrderingNotice);
