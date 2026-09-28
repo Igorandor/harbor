@@ -6,6 +6,7 @@ import { DataValue } from '../components/DataView';
 import { InvestigationChecklist } from '../components/InvestigationChecklist';
 import { EvidenceWorkbench } from '../components/EvidenceWorkbench';
 import { diagnosticSources, type DiagnosticId } from '../../shared/diagnostics';
+import { investigationReport } from '../../shared/investigation-report';
 import {
   caseSeverity,
   caseStatus,
@@ -757,104 +758,7 @@ function CaptureView({ capture }: { capture: CaseCapture }) {
   );
 }
 function printCase(record: Investigation) {
-  const escape = (value: unknown) =>
-    String(value ?? '').replace(
-      /[&<>"']/g,
-      (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!,
-    );
-  const html =
-    '<!doctype html><html lang="en"><meta charset="utf-8"><title>' +
-    escape(record.title) +
-    '</title><style>body{font:16px/1.5 system-ui;max-width:1000px;margin:40px auto;padding:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere}section{border-top:1px solid #bbb;padding-top:20px}small{color:#555}</style><h1>' +
-    escape(record.title) +
-    '</h1><p>' +
-    escape(record.description) +
-    '</p><p>' +
-    escape(record.status) +
-    ' · ' +
-    escape(record.severity) +
-    ' · ' +
-    escape(record.instance) +
-    '</p><h2>Timeline</h2>' +
-    record.notes
-      .map(
-        (note) =>
-          '<section><small>' +
-          escape(note.at) +
-          ' · ' +
-          escape(note.author) +
-          '</small><p>' +
-          escape(note.text) +
-          '</p></section>',
-      )
-      .join('') +
-    '<h2>Checklist</h2>' +
-    (record.checklist
-      ?.map(
-        (item) =>
-          '<section><h3>' +
-          escape(item.title) +
-          '</h3><p>' +
-          escape(item.instruction) +
-          '</p><p>' +
-          escape(item.state) +
-          ' · ' +
-          (item.required ? 'Required' : 'Optional') +
-          '</p><p>' +
-          escape(item.note) +
-          '</p><small>' +
-          escape(item.updatedBy) +
-          ' · ' +
-          escape(item.updatedAt) +
-          '</small></section>',
-      )
-      .join('') || '<p>No checklist attached.</p>') +
-    '<h2>Evidence reviews</h2>' +
-    (record.evidenceReviews
-      ?.map(
-        (review) =>
-          '<section><h3>' +
-          escape(review.title) +
-          '</h3><p>' +
-          escape(review.beforeId) +
-          ' → ' +
-          escape(review.afterId) +
-          '</p><p>' +
-          (review.conclusion ? 'Concluded' : 'Open') +
-          ' · ' +
-          review.decisions.length +
-          ' current decisions · ' +
-          review.history.length +
-          ' decision revisions</p>' +
-          (review.conclusion
-            ? '<blockquote>' +
-              escape(review.conclusion.text) +
-              '</blockquote><small>' +
-              escape(review.conclusion.author) +
-              ' · ' +
-              escape(review.conclusion.at) +
-              '</small>'
-            : '') +
-          '<pre>' +
-          escape(JSON.stringify(review.decisions, null, 2)) +
-          '</pre></section>',
-      )
-      .join('') || '<p>No evidence reviews saved.</p>') +
-    '<h2>Related changes</h2><ul>' +
-    record.linkedChanges.map((id) => '<li>' + escape(id) + '</li>').join('') +
-    '</ul>' +
-    '<h2>Captures</h2>' +
-    record.captures
-      .map(
-        (capture) =>
-          '<section><h3>' +
-          escape(capture.title) +
-          '</h3><pre>' +
-          escape(JSON.stringify(capture.bundle, null, 2)) +
-          '</pre></section>',
-      )
-      .join('') +
-    '</html>';
+  const html = investigationReport(record);
   const url = URL.createObjectURL(new Blob([html], { type: 'text/html' })),
     anchor = document.createElement('a');
   anchor.href = url;

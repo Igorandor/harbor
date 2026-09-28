@@ -437,10 +437,12 @@ export function comparisonReport(comparison: EvidenceComparison, review?: Eviden
       ? `<small>${escape(value.type)}${value.clipped ? ' · preview clipped' : ''}</small><pre>${escape(value.preview)}</pre>`
       : '<em>Not present</em>';
   return (
-    '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Evidence comparison</title>' +
-    '<style>body{font:15px/1.5 system-ui;max-width:1100px;margin:30px auto;padding:20px}article,section{border-top:1px solid #ccc;padding:15px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere}table{width:100%;table-layout:fixed}td,th{vertical-align:top;text-align:left;padding:8px;border:1px solid #ddd}code{overflow-wrap:anywhere}small{color:#555}@media print{article{break-inside:avoid}}</style>' +
+    '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Evidence comparison</title>' +
+    '<style>body{font:15px/1.5 system-ui;max-width:1100px;margin:30px auto;padding:20px}h1,h2,h3,p,li,td,th,small{overflow-wrap:anywhere}p{white-space:pre-wrap}article,section{border-top:1px solid #ccc;padding:15px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere}table{width:100%;table-layout:fixed}td,th{vertical-align:top;text-align:left;padding:8px;border:1px solid #ddd}code{overflow-wrap:anywhere}small{color:#555}@media screen and (max-width:600px){body{margin:16px auto;padding:16px}h1{font-size:26px}h3{font-size:17px}}@media print{article{break-inside:avoid}}</style>' +
     `<h1>${escape(review?.title ?? 'Evidence comparison')}</h1><p>${escape(comparison.instance)}</p>` +
     `<p>${escape(comparison.beforeTitle)} (${escape(comparison.beforeFinishedAt)}) → ${escape(comparison.afterTitle)} (${escape(comparison.afterFinishedAt)})</p>` +
+    `<p><strong>Earlier capture ID:</strong> ${escape(comparison.beforeId)}</p><p><strong>Later capture ID:</strong> ${escape(comparison.afterId)}</p>` +
+    (review ? `<p><strong>Saved review ID:</strong> ${escape(review.id)}</p>` : '') +
     `<p>${comparison.differenceCount} retained differences; ${comparison.unavailableCount} unavailable sources; ${comparison.limitedCount} limited comparisons.</p>` +
     '<ul>' +
     comparison.notices.map((notice) => '<li>' + escape(notice) + '</li>').join('') +

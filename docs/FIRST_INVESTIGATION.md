@@ -36,7 +36,7 @@ For a later check, capture the same sources again while the case is open and use
 
 ## 4. Hand over the evidence
 
-Choose **Download report** for an HTML report or **Export investigation** for the saved case JSON. Review the report, notes and retained operational data before sharing. Include the separate task observation when it contains relevant details missing from the general capture.
+Choose **Download report** for an HTML report or **Export investigation** for the saved case JSON. Open the HTML file in a browser to read or print it. Check its case ID, owner, instance, revision and update time before sharing. A previous resolution belongs to an earlier closure when the case has been reopened; use the current status and timeline to understand the remaining work. Review the notes and retained operational data before sharing. Include the separate task observation when it contains relevant details missing from the general capture.
 
 Saved cases belong to the signed-in IRIS account and instance. Another account cannot open your case as a shared ticket; use the exported report for handover. Returning with the same account lets you reopen the retained investigation, subject to its current source permissions. If a resolved case disappears from the default list, change **Status** from **Active investigations** to **All investigations**.
 

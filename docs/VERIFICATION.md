@@ -1,5 +1,11 @@
 # Verification record
 
+## Identifiable, readable handover exports — September 28, 2026
+
+Release 1.0.9 adds the saved case ID, owner, instance, revision and creation/update times to investigation HTML. A retained closure reason is labelled Previous resolution when the case is active again. Each capture identifies its ID and collector; comparison HTML identifies the selected captures and optional saved review. Existing timeline, checklist, decisions and payload sections are preserved. Long text wraps in both documents, and the investigation document now declares a mobile viewport.
+
+Production build and 325 tests pass, including five export regressions covering repeated titles, all resolution states, missing resolution, escaping, retained evidence and individual capture identities without a saved review. Root browser checks used schema-valid synthetic records, no native or durable writes. Before the fix, investigation/comparison documents had375px client widths and928/728px scroll widths. Afterward both measured375/375 inside390px frames; the comparison also measured1265/1265 on desktop. Desktop and phone inspection confirmed readable two-column differences and a historical resolution beside an active investigation status. These checks do not certify physical devices or printing.
+
 ## Current collection metadata and missing responses — September 28, 2026
 
 Wallet details previously reused the selected table row even after a refused read, a changed type or an empty metadata response. Details now select the exact identity from the current metadata list. Missing records have an explicit message; loading, failed or missing required reads disable source-backed actions. Task actions also need the task-status read. Process controls use current detail capabilities rather than older list flags; native generation and exact-target confirmation remain in place. Secret values are never retrieved.
