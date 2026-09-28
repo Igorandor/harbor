@@ -30,6 +30,8 @@ Every editor has a separate review step. Deletions and execution controls requir
 
 Use **Ctrl/Cmd+K** to switch tools. The interface supports keyboard navigation, phone layouts and light or dark themes. Fonts and icons are bundled locally.
 
+The **Log files** workspace includes `messages.old_Date`, the archive name IRIS uses when [`MaxConsoleLogSize`](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RACS_MaxConsoleLogSize) rotates `messages.log`. It also reads `messages.log`, `alerts.log` and their numeric `.log` rotations. Reads stay inside the IRIS manager directory; custom console directories, compressed archives and symlinks are not supported. Each page scans at most 256 KiB and returns at most 500 lines, and the file list contains at most 100 entries.
+
 ## Quick start
 
 Requirements: Docker Engine/Desktop with Compose v2, at least 4 GB available RAM, and approximately 5 GB free disk space. Linux containers are required. On Windows, start Docker Desktop or a Docker daemon in WSL first.

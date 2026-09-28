@@ -13,5 +13,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: python3 scripts/check-log-reader.py
       - run: npm audit --omit=dev
       - run: docker build -t iris-harbor-portal .

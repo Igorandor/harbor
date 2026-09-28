@@ -73,11 +73,13 @@ class LogReaderTests(unittest.TestCase):
         self.assertEqual(self.page(snapshot=str(first["snapshotBytes"]))["status"], 409)
 
     def test_long_partial_line_is_omitted_with_a_bounded_window(self):
-        (self.root / "messages.log").write_bytes(b"x" * 300000)
-        page = self.page()
-        self.assertEqual(page["scannedBytes"], 262144)
-        self.assertEqual(page["lines"], [])
-        self.assertGreater(page["olderOffset"], 0)
+        for name in ["messages.log", "messages.old_20260928"]:
+            with self.subTest(name=name):
+                (self.root / name).write_bytes(b"x" * 300000)
+                page = self.page(name)
+                self.assertEqual(page["scannedBytes"], 262144)
+                self.assertEqual(page["lines"], [])
+                self.assertGreater(page["olderOffset"], 0)
 
     def test_masking_unicode_and_line_clipping(self):
         (self.root / "messages.log").write_text("password=example\n" + "ż" * 20000 + "\n", encoding="utf-8")
@@ -94,16 +96,48 @@ class LogReaderTests(unittest.TestCase):
         for name in ["../messages.log", "/etc/passwd", "messages.log.gz"]:
             self.assertEqual(self.page(name)["status"], 400)
 
+    def test_native_message_rotations_are_catalogued_and_read(self):
+        rotated = ["messages.old_20260928", "messages.old_2026-09-28_10-23-04"]
+        for name in ["messages.log", "alerts.log.1", *rotated]:
+            (self.root / name).write_text("retained-entry\n" * 90)
+        files = json.loads(self.catalog())["files"]
+        self.assertEqual(files[0]["id"], "messages.log")
+        by_name = {item["id"]: item for item in files}
+        for name in rotated:
+            with self.subTest(name=name):
+                self.assertIn(name, by_name)
+                self.assertEqual(by_name[name]["source"], "messages")
+                self.assertFalse(by_name[name]["active"])
+                first = self.page(name, limit=20)
+                self.assertEqual(len(first["lines"]), 20)
+                older = self.page(name, offset=str(first["olderOffset"]), snapshot=str(first["snapshotBytes"]), identity=first["identity"], limit=20)
+                self.assertEqual(older["end"], first["start"])
+                self.assertEqual(older["identity"], first["identity"])
+                (self.root / name).write_text("replacement\n" * 90)
+                self.assertEqual(self.page(name, identity=first["identity"])["status"], 409)
+
+    def test_native_rotation_allowlist_remains_narrow(self):
+        rejected = ["messages.old_", "messages.old_backup", "messages.old_20260928.gz", "messages.old_" + "9" * 41, "alerts.old_20260928", "private.old_20260928"]
+        for name in rejected:
+            (self.root / name).write_text("not-a-supported-log\n")
+        (self.root / "messages.old_20260928").mkdir()
+        self.assertEqual(json.loads(self.catalog())["files"], [])
+        for name in [*rejected, "../messages.old_20260928", "messages.old_20260928/private.log", "messages.old_20260928\\private.log"]:
+            with self.subTest(name=name):
+                self.assertEqual(self.page(name)["status"], 400)
+        self.assertEqual(self.page("messages.old_20260928")["status"], 404)
+
     def test_symlinks_are_never_catalogued_or_opened(self):
         real = self.root / "private.log"
         real.write_text("private-data")
-        link = self.root / "messages.log"
-        try:
-            link.symlink_to(real)
-        except OSError:
-            self.skipTest("Symlink privilege unavailable on this platform")
+        for name in ["messages.log", "messages.old_20260928"]:
+            link = self.root / name
+            try:
+                link.symlink_to(real)
+            except OSError:
+                self.skipTest("Symlink privilege unavailable on this platform")
+            self.assertEqual(self.page(link.name)["status"], 404)
         self.assertEqual(json.loads(self.catalog())["files"], [])
-        self.assertEqual(self.page()["status"], 404)
 
 
 if __name__ == "__main__":

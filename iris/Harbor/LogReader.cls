@@ -6,7 +6,7 @@ ClassMethod Catalog() As %String [ Language = python ]
     import json, os, re, iris
     from pathlib import Path
     root = Path(str(iris.system.Util.ManagerDirectory())).resolve()
-    allowed = re.compile(r"^(messages|alerts)\.log(?:[._-][0-9][0-9._-]{0,39})?$")
+    allowed = re.compile(r"^(?:(messages|alerts)\.log(?:[._-][0-9][0-9._-]{0,39})?|(messages)\.old_[0-9][0-9._-]{0,39})$")
     files = []
     examined = 0
     with os.scandir(root) as entries:
@@ -18,11 +18,11 @@ ClassMethod Catalog() As %String [ Language = python ]
             if not match or entry.is_symlink() or not entry.is_file(follow_symlinks=False):
                 continue
             details = entry.stat(follow_symlinks=False)
-            files.append({"id": entry.name, "source": match.group(1), "bytes": details.st_size, "modifiedAt": details.st_mtime, "active": entry.name in ("messages.log", "alerts.log")})
+            files.append({"id": entry.name, "source": match.group(1) or match.group(2), "bytes": details.st_size, "modifiedAt": details.st_mtime, "active": entry.name in ("messages.log", "alerts.log")})
             if len(files) >= 100:
                 break
     files.sort(key=lambda item: (not item["active"], -item["modifiedAt"], item["id"]))
-    return json.dumps({"files": files, "limited": examined > 10000 or len(files) >= 100, "notice": "Only ordinary messages/alerts log files with numeric rotation suffixes are supported. Compressed archives are not read."})
+    return json.dumps({"files": files, "limited": examined > 10000 or len(files) >= 100, "notice": "Reads messages.log, alerts.log, numeric .log rotations and messages.old_Date files in the manager directory. Compressed archives are not read."})
 }
 
 /// Read a previous byte window. Every read is capped before parsing lines.
@@ -30,7 +30,7 @@ ClassMethod Window(file As %String, offset As %String = "", snapshot As %String 
 {
     import json, os, re, hashlib, iris
     from pathlib import Path
-    allowed = re.compile(r"^(messages|alerts)\.log(?:[._-][0-9][0-9._-]{0,39})?$")
+    allowed = re.compile(r"^(?:(messages|alerts)\.log(?:[._-][0-9][0-9._-]{0,39})?|(messages)\.old_[0-9][0-9._-]{0,39})$")
     if not allowed.fullmatch(file):
         return json.dumps({"error": "Unknown log file", "status": 400})
     root = Path(str(iris.system.Util.ManagerDirectory())).resolve()

@@ -12,7 +12,8 @@ const cursorSchema = z
     expires: z.number().int().positive(),
   })
   .strict();
-const filePattern = /^(messages|alerts)\.log(?:[._-][0-9][0-9._-]{0,39})?$/;
+const filePattern =
+  /^(?:(messages|alerts)\.log(?:[._-][0-9][0-9._-]{0,39})?|(messages)\.old_[0-9][0-9._-]{0,39})$/;
 export class LogService {
   private key = randomBytes(32);
   constructor(
