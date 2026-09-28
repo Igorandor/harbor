@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Download, RefreshCw, Search, X, CheckCircle2, AlertTriangle, Clock3 } from 'lucide-react';
-import { download, executeChange, request } from '../api';
+import { download, executeChange, request, RequestError } from '../api';
 import { DataValue } from '../components/DataView';
 import { ChangeImpact } from '../components/ChangeImpact';
 import { ErrorBox, Loading, PageHeader } from '../components/ui';
@@ -25,14 +25,44 @@ export function Changes() {
     [confirmation, setConfirmation] = useState('');
   const pending = useRef(false);
   const [awaitingRead, setAwaitingRead] = useState<string>();
+  function acceptListing(value: Listing) {
+    setListing(value);
+    setSelected((current) =>
+      current &&
+      (value.records.some((record) => record.id === current.id) ||
+        value.unreadable.includes(current.id))
+        ? current
+        : undefined,
+    );
+  }
+  function clearDeniedList(error: unknown) {
+    if (error instanceof RequestError && error.status === 403) {
+      setListing(undefined);
+      setSelected(undefined);
+      setConfirmation('');
+    }
+  }
+  function removeDeniedRecord(id: string) {
+    setSelected((current) => (current?.id === id ? undefined : current));
+    setListing(
+      (current) =>
+        current && {
+          ...current,
+          records: current.records.filter((record) => record.id !== id),
+          unreadable: current.unreadable.filter((recordId) => recordId !== id),
+        },
+    );
+    // An execution-response marker clears only after a successful GET for that ID.
+  }
   async function load() {
     if (pending.current) return;
     pending.current = true;
     setBusy(true);
     setError('');
     try {
-      setListing(await request<Listing>('changes'));
+      acceptListing(await request<Listing>('changes'));
     } catch (error) {
+      clearDeniedList(error);
       setError((error as Error).message);
     } finally {
       pending.current = false;
@@ -52,6 +82,8 @@ export function Changes() {
       setSelected(await request<ChangeRecord>('changes/' + id));
       setAwaitingRead((current) => (current === id ? undefined : current));
     } catch (error) {
+      if (error instanceof RequestError && [403, 404].includes(error.status))
+        removeDeniedRecord(id);
       setError((error as Error).message);
     } finally {
       pending.current = false;
@@ -75,8 +107,9 @@ export function Changes() {
       setSelected(result);
       setConfirmation('');
       try {
-        setListing(await request<Listing>('changes'));
+        acceptListing(await request<Listing>('changes'));
       } catch (error) {
+        clearDeniedList(error);
         setError(
           'The change record was received, but the list could not refresh: ' +
             (error as Error).message,
