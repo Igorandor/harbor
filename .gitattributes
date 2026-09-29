@@ -1,3 +1,4 @@
 * text=auto eol=lf
 *.png binary
 *.woff2 binary
+ipm/harbor-gateway/** linguist-generated=true -whitespace

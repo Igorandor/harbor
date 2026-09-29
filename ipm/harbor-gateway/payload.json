@@ -1,0 +1,21 @@
+{
+  "version": "1.1.0",
+  "files": {
+    "dist/assets/dm-sans-latin-ext-wght-normal-BOFOeGcA.woff2": "a5d38fe99f930275684999b462c7123faa063d9e44e73b4b241723d884aa0f49",
+    "dist/assets/dm-sans-latin-wght-normal-Xz1IZZA0.woff2": "9fea608a947e67020c33cad9a6fe3d60c54119dfb8cff87768a8117a15ed7543",
+    "dist/assets/index-CvumVYhu.js": "6641894d9cbec0e0fd7aa899cd7f6609695040c38ffbb19ef0808c2f1ffff010",
+    "dist/assets/index-XF5a8zUU.css": "33747ee8dea42c4d4c1c73e43f94556d72db383f7d3350b6b7f840110bf397ae",
+    "dist/assets/manrope-cyrillic-wght-normal-Dvxsihut.woff2": "c268b459a9329e59fecf39a17618efd44c71735532048d60b12aab76a8c14914",
+    "dist/assets/manrope-greek-wght-normal-DL7QRZyv.woff2": "2fb2e8cbfd52ae46179a8b6024eb162f1f9c6de3d22d6e3a30d8f395de7220be",
+    "dist/assets/manrope-latin-ext-wght-normal-Ch3YOpNY.woff2": "3911b66d9f2e005a4b989223405d0e5032619c668597ba467cc76a23c8fffcfb",
+    "dist/assets/manrope-latin-wght-normal-DHIcAJRg.woff2": "a30ddcd349703aff7464c34bef3fffdff405ee50c113440d7c8693c02d210972",
+    "dist/assets/manrope-vietnamese-wght-normal-usUDDRr7.woff2": "6bbb044ab420e07edb0a3042d2eb314b85e83a0182e945a15ab3b9092668dfd5",
+    "dist/favicon.svg": "d8b00df006be9a1332102b884d87f6d09a0b156097ad11188ba3749b07b0e11d",
+    "dist/index.html": "32d27056570d7a06038276e1b6863b0e346e86ab33de6f3a970b006ccce96e71",
+    "LICENSE": "86ea29ca0c41955fa1f48b197346b820239c2cb540563534ebc50fda49707498",
+    "server.cjs": "8c2f4afb75f87fa1b49449b0d687da05c053974499d1b0263095a17aad13cfd6",
+    "server.cjs.LEGAL.txt": "ab11a31bad9728d9dba45761883b437ffe8823094a6d8ab764f80a55b97ed10b",
+    "start.mjs": "880b7c9441aa48df2c585d9ee04199ba543b541926df926a0a39682cd7bdab18",
+    "THIRD_PARTY_LICENSES.txt": "710651211969bbfdb5cdd1a7a2b5e073b3463ba1cd9e1cf96248c69660a08414"
+  }
+}

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="IRIS" version="26">
+  <Document name="harbor.ZPM">
+    <Module>
+      <Name>harbor</Name>
+      <Version>1.1.0</Version>
+      <Description>Investigate IRIS tasks, logs and runtime state with retained diagnostic evidence.</Description>
+      <Author><Person>Igor Podlewski</Person><CopyrightDate>2026</CopyrightDate><License>MIT</License></Author>
+      <Packaging>module</Packaging>
+      <SystemRequirements Version="&gt;=2026.2" />
+      <SourcesRoot>iris</SourcesRoot>
+      <Resource Name="Harbor.Rest.CLS" Directory="." />
+      <Resource Name="Harbor.Telemetry.CLS" Directory="." />
+      <Resource Name="Harbor.LogReader.CLS" Directory="." />
+      <Resource Name="Harbor.PackageInstaller.CLS" Directory="." />
+      <Invoke Class="Harbor.PackageInstaller" Method="Validate" Phase="Compile" When="After" CheckStatus="true" />
+      <FileCopy Name="ipm/harbor-gateway/" Target="${libdir}harbor/1.1.0/" />
+      <FileCopy Name="docs/HARBOR_IPM.md" Target="${libdir}harbor/1.1.0/IPM.md"/>
+      <WebApplication Name="/api/harbor" NameSpace="${namespace}" DispatchClass="Harbor.Rest" AutheEnabled="32" Resource="%Admin_Operate" Enabled="1" />
+      <AfterInstallMessage>Harbor installed. Node.js 22.12+ is required. Configure a separate investigation directory and start lib/harbor/1.1.0/start.mjs as described in docs/HARBOR_IPM.md. No accounts or native grants were created.</AfterInstallMessage>
+    </Module>
+  </Document>
+</Export>

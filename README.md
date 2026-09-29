@@ -34,6 +34,10 @@ Use **Ctrl/Cmd+K** to switch tools. The interface supports keyboard navigation, 
 
 The **Log files** workspace includes `messages.old_Date`, the archive name IRIS uses when [`MaxConsoleLogSize`](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RACS_MaxConsoleLogSize) rotates `messages.log`. It also reads `messages.log`, `alerts.log` and their numeric `.log` rotations. Reads stay inside the IRIS manager directory; custom console directories, compressed archives and symlinks are not supported. Each page scans at most 256 KiB and returns at most 500 lines, and the file list contains at most 100 entries.
 
+## Install on an existing IRIS instance
+
+The [IPM installation guide](docs/HARBOR_IPM.md) covers packaged installation of the web interface, gateway and native extension, with a separate persistent data directory. Node.js 22.12+ is required.
+
 ## Quick start
 
 Requirements: Docker Engine/Desktop with Compose v2, at least 4 GB available RAM, and approximately 5 GB free disk space. Linux containers are required. On Windows, start Docker Desktop or a Docker daemon in WSL first.
@@ -123,7 +127,7 @@ This configuration starts no IRIS server and seeds no accounts. Deployment mode 
 2. Open **Web applications**, search for a route and open its details. Choose **Edit**, change a description, then review the old and new values before applying.
 3. In **Access & permissions → Roles**, inspect a role's resource grants and inherited roles. New grants use explicit resource names and `R`, `W`, `U` permission combinations.
 4. In **Security & secrets**, create a wallet collection. Select it in **Wallet secrets** and create a `collection.name` secret. Secret values are write-only; the list shows metadata. Use the `WalletSecretConfig` help text to supply the documented IRIS configuration for the selected secret type.
-5. In **Scheduled tasks**, open a task to see its execution status from `/task/info`. Create an on-demand `Harbor.DemoTask` in `%SYS` to try a harmless run: it only records the last-run timestamp in `^HarborDemo`. A requested run is not proof that arbitrary task code succeeded; inspect **Logs → Task history**.
+5. In **Scheduled tasks**, open a task to see its execution status from `/task/info`. In the bundled Docker installation, create an on-demand `Harbor.DemoTask` in `%SYS` to try a harmless run: it only records the last-run timestamp in `^HarborDemo`. The IPM package excludes sample tasks; on an existing instance use a task class approved for that environment. A requested run is not proof that arbitrary task code succeeded; inspect **Logs → Task history**.
 6. In **System resources**, wait for two telemetry samples to see CPU utilization, then inspect a process. The UI honors IRIS capability flags for suspension and termination.
 7. Open **Logs & activity**, switch between original sources, filter entries and export a source if needed. Security audit queries run asynchronously and are polled until completion.
 8. Use **REST explorer** for less common read requests. Required query parameters are taken from the pinned API contract.

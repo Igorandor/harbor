@@ -21,7 +21,7 @@ The application includes English installation instructions and a written demonst
 
 The [published technology bonus list](https://community.intersystems.com/post/technology-bonuses-intersystems-programming-contest-build-your-own-management-portal) was reviewed. Harbor uses Docker and Embedded Python for a concrete purpose: native host telemetry and bounded log reads.
 
-The video is available through the link in [VIDEO.md](VIDEO.md). No bonus award is assumed. Online hosting, IPM publication, community ideas, first-time participation and reported vendor bugs are not claimed.
+The video is available through the link in [VIDEO.md](VIDEO.md). No bonus award is assumed. Online hosting, community ideas, first-time participation and reported vendor bugs are not claimed.
 
 ## Submission follow-up
 
@@ -45,3 +45,7 @@ The [original project idea](../IDEA.md) and the additional product-specific walk
 ## Video and online-demo preparation
 
 The [video walkthrough](https://www.youtube.com/watch?v=TtJbHYvCNck) is published as unlisted with English captions and CC0 music; see [VIDEO.md](VIDEO.md). The owner chose to skip cloud hosting; see [ONLINE_DEMO.md](ONLINE_DEMO.md). Do not count a local video file or local server as an awarded bonus.
+
+## IPM deployment
+
+Version 1.1.0 includes a complete IPM package: the frontend, bundled gateway dependencies and native extension. Node.js remains a prerequisite. See [installation and lifecycle checks](HARBOR_IPM.md). Public registry availability will be recorded after Open Exchange publication; the organizer determines bonus eligibility.
