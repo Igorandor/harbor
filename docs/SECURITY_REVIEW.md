@@ -26,13 +26,11 @@ Masking now performs a single literal replacement pass over each original string
 
 - Fixed upstream target, contract allowlist, query encoding and redirect refusal.
 - Session rotation/expiry, CSRF/origin checks and sign-in/concurrency limits.
-- Relay account/instance ownership and fresh native operating-privilege checks; persisted record paths and restoration workflow.
-- Atlas capture separation, bounded imports, strict schema/duplicate identity checks and graph lookup.
 - Text-only React rendering, fixed native log paths, extension privilege checks and loopback Compose publishing.
-- npm audit reported zero known vulnerabilities in all three installed dependency trees at review time. This does not scan the complete container OS or IRIS product.
+- npm audit reported zero known vulnerabilities in the installed dependency tree at review time. This does not scan the complete container OS or IRIS product.
 
-The six new regression cases pass together with the existing suite: 68/68. TypeScript and production bundles pass. Initial failing regressions and dependency-audit output are retained in the parent workspace research directory, outside the distributable project.
+The six new regression cases pass together with the existing suite: 68/68. TypeScript and production bundles pass.
 
-The earlier rejected continuously trickling timeout probe was not retried. No external targets, destructive load, unauthorized account access or publication were involved. Local integration suites use disposable native records and preserve their usual cleanup behavior.
+No external targets, destructive load, unauthorized account access or publication were involved. Local integration suites use disposable native records and preserve their usual cleanup behavior.
 
-After the final rebuild, installed-gateway, native CRUD/observability and extended workflow suites passed on the real local IRIS instance, including asynchronous audit retrieval. Atlas access-analysis and Relay runbook integration suites also passed. All six Compose containers were healthy at the final check.
+After the final rebuild, installed-gateway, native CRUD/observability and extended workflow suites passed on the real local IRIS instance, including asynchronous audit retrieval.

@@ -230,7 +230,7 @@ The actual browser was used against the real server, including the production Co
 
 The final source passes TypeScript, production bundling and 62 tests. The rebuilt Compose stack passed installed-gateway, native CRUD/observability and extended workflow suites.
 
-Browser checks covered the structured REST response, nested disclosures and the distinct product workspace. Shared components were exercised through Harbor's native MatchRoles array: adding an object and nested TargetRoles array, editing a value, closing/reopening without loss, reviewing the result and removing an entry. The draft was cancelled without applying permissions. Relay checks covered real stored host, health, message and scheduling-state evidence, unit switching, classification, empty filters and keyboard activation. Atlas checks covered an empty baseline comparison and an added disposable resource shown as field differences; the resource was removed afterward.
+Browser checks covered the structured REST response, nested disclosures and the distinct product workspace. Presentation components were exercised through Harbor's native MatchRoles array: adding an object and nested TargetRoles array, editing a value, closing/reopening without loss, reviewing the result and removing an entry. The draft was cancelled without applying permissions.
 
 The responsive checks used a 390 × 844 viewport. They found an absolutely positioned screen-reader table label escaping its horizontal scroll area; the scroll container now provides its positioning context. Wide tables keep their own horizontal scroll. The inspected browser error/warning logs were empty. These checks are interactive evidence, not an accessibility certification.
 
@@ -240,19 +240,19 @@ Native resource creation rejected missing and empty PublicPermission values in t
 
 Six additional regressions cover asynchronous diagnostic masking, identity preservation, retained history bounds, escaped/multibyte output, single-pass literal replacement and rejection of excessive credential fields before a write. All 68 tests and production builds pass. See [SECURITY_REVIEW.md](SECURITY_REVIEW.md) for reproductions, scope and limitations.
 
-The security follow-up was deployed to the local Compose portal. Installed-gateway, native smoke and extended workflows passed after rebuilding; Atlas live access analysis and Relay runbooks also passed. No container OS vulnerability scan or IRIS product certification is implied.
+The security follow-up was deployed to the local Compose portal. Installed-gateway, native smoke and extended workflows passed after rebuilding. No container OS vulnerability scan or IRIS product certification is implied.
 
 ## Second security recheck
 
-The subsequent recheck fixed duplicate unmasked fallback consoles and rejected malformed native login identities/API versions before session creation. All 71 tests, TypeScript checks and production builds pass. The rebuilt local portals passed installation, native smoke and extended workflow suites, plus Atlas access analysis and Relay runbooks. Dependency audits report zero known vulnerabilities. See [SECURITY_RECHECK.md](SECURITY_RECHECK.md) for reproduction conditions and limitations.
+The subsequent recheck fixed duplicate unmasked fallback consoles and rejected malformed native login identities/API versions before session creation. All 71 tests, TypeScript checks and production builds pass. The rebuilt portal passed installation, native smoke and extended workflow suites. Dependency audits report zero known vulnerabilities. See [SECURITY_RECHECK.md](SECURITY_RECHECK.md) for reproduction conditions and limitations.
 
-## Third requested review
+## Native error handling review
 
-The next review corrected false success for nonempty native error lists without messages and added target locking to Relay reconciliation. All 73 tests, TypeScript and production builds pass. Rebuilt local portals again passed installation, native smoke and extended workflows, plus Atlas access analysis and Relay runbooks. Dependency audits reported zero known vulnerabilities. Deterministic failing-before/passing-after fixtures and the scope of the locking guarantee are documented in [SECURITY_RECHECK.md](SECURITY_RECHECK.md).
+The next review corrected false success for nonempty native error lists without messages. All 73 tests, TypeScript and production builds pass. The rebuilt portal again passed installation, native smoke and extended workflows. Dependency audits reported zero known vulnerabilities. Deterministic failing-before/passing-after fixtures are documented in [SECURITY_RECHECK.md](SECURITY_RECHECK.md).
 
 ## Expanded review
 
-The final build passes 75 tests. The expanded review added malformed-capture and graph cases, upstream protocol checks, native task-edit preservation checks, and browser checks of request sequencing and sign-out failures. All primary native suites, Atlas access analysis, Relay runbooks, X.509 and demo process-control suites passed; final installed-gateway checks passed after the last rebuild. See [DEEP_REVIEW.md](DEEP_REVIEW.md) for fixes, evidence and the stopping criterion.
+The final build passes 75 tests. The expanded review added upstream protocol checks, native task-edit preservation checks, and browser checks of request sequencing and sign-out failures. The primary native suites, X.509 and demo process-control suites passed; final installed-gateway checks passed after the last rebuild. See [DEEP_REVIEW.md](DEEP_REVIEW.md) for fixes, evidence and scope.
 
 ## Contest and authorization review, September 26
 
