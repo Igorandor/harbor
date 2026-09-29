@@ -17,7 +17,7 @@ zn "%SYS"
 zpm "install harbor"
 ```
 
-Registry publication is requested through Open Exchange. Until the package appears in the registry, use the release archive or source installation below. A successful local installation does not establish registry publication or a contest bonus award.
+Version 1.1.0 is published in the community registry. Installation with `zpm "install harbor"` was verified on September 29, 2026. The release archive and source installation below also support offline deployment. Contest bonus awards remain the organizer's decision.
 
 For an offline installation, download `harbor-1.1.0.tgz` from the [1.1.0 release](https://github.com/Igorandor/harbor/releases/tag/v1.1.0), transfer it to the IRIS host and use:
 
@@ -84,3 +84,5 @@ Test the exported archive before publishing. Check native login and extension re
 On an isolated IRIS Community 2026.2 build 221U instance with IPM 0.10.8, source installation in `%SYS` and archive installation in `USER` succeeded. Native login, extension reads and a retained investigation with a diagnostic capture worked through the installed gateway. Uninstall removed its route and gateway files while preserving the external record byte-for-byte; reinstall reopened that record. A route owned by another dispatch class was refused without replacing it. Package resource names are specific to this application so other packages can coexist in the namespace.
 
 The source suite passed 341 tests. Two packaging tests cover the payload inventory, resource names, copied-runtime startup, origin/session refusals, required configuration and unsafe data paths.
+
+Public registry installation was subsequently tested in `%SYS` after uninstalling the isolated archive installation. The downloaded payload matched every release inventory hash; native login, extension reads and reopening the saved record passed, with the external record unchanged. The packaged frontend was also checked at desktop and 390px widths.

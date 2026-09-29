@@ -48,4 +48,4 @@ The [video walkthrough](https://www.youtube.com/watch?v=TtJbHYvCNck) is publishe
 
 ## IPM deployment
 
-Version 1.1.0 includes a complete IPM package: the frontend, bundled gateway dependencies and native extension. Node.js remains a prerequisite. See [installation and lifecycle checks](HARBOR_IPM.md). Public registry availability will be recorded after Open Exchange publication; the organizer determines bonus eligibility.
+Version 1.1.0 includes a complete IPM package: the frontend, bundled gateway dependencies and native extension. Node.js remains a prerequisite. See [installation and lifecycle checks](HARBOR_IPM.md). The package is published in the community registry, and `zpm "install harbor"` was verified on an isolated IRIS instance on September 29, 2026. The organizer determines bonus eligibility.
